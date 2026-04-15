@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HMIS Analytics</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f4f0;color:#1a1a18;min-height:100vh}
+
+/* upload */
+.uwrap{max-width:540px;margin:4rem auto;background:#fff;border-radius:12px;border:0.5px solid rgba(0,0,0,.1);padding:2.5rem 2rem;text-align:center}
+.dz{border:1.5px dashed rgba(0,0,0,.18);border-radius:10px;padding:2.5rem;cursor:default;transition:background .15s}
+.dz.over{background:#f5f4f0}
+.dz-icon{width:44px;height:44px;margin:0 auto 1rem;background:#e8f0fb;border-radius:10px;display:flex;align-items:center;justify-content:center}
+.dz-icon svg{width:22px;height:22px;stroke:#185fa5;fill:none;stroke-width:1.5}
+.dz-title{font-size:15px;font-weight:500;margin-bottom:5px}
+.dz-sub{font-size:13px;color:#6b6b67}
+.btn-up{display:inline-block;margin-top:1.1rem;padding:7px 18px;background:#185fa5;color:#fff;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none}
+.btn-up:hover{background:#0c447c}
+.err{background:#fcebeb;border:0.5px solid #f09595;border-radius:8px;padding:10px 14px;font-size:13px;color:#a32d2d;margin-top:1rem}
+
+/* sticky control bar */
+.ctrl{background:#fff;border-bottom:0.5px solid rgba(0,0,0,.1);position:sticky;top:0;z-index:100}
+.ctrl-top{display:flex;align-items:center;gap:10px;padding:.7rem 1.5rem;border-bottom:0.5px solid rgba(0,0,0,.06)}
+.ctrl-title{font-size:15px;font-weight:500}
+.ctrl-sub{font-size:11px;color:#6b6b67;margin-left:2px}
+.ctrl-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.ctrl-fname{font-size:12px;color:#888780}
+.ctrl-reset{font-size:12px;color:#185fa5;background:none;border:none;cursor:pointer}
+.ctrl-periods{padding:.45rem 1.5rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:0.5px solid rgba(0,0,0,.06)}
+.ptoggle{display:flex;flex-wrap:wrap;gap:2px;background:#ede9e3;border-radius:8px;padding:3px}
+.pbtn{padding:4px 11px;font-size:12px;border:none;border-radius:6px;cursor:pointer;background:transparent;color:#6b6b67;transition:all .1s;white-space:nowrap}
+.pbtn.active{background:#fff;color:#1a1a18;font-weight:500;box-shadow:0 0 0 0.5px rgba(0,0,0,.1)}
+.dr-row{display:none;align-items:center;gap:6px;flex-wrap:wrap}
+.dr-row.on{display:flex}
+.dr-row input[type=date]{font-size:12px;padding:4px 8px;border:0.5px solid rgba(0,0,0,.15);border-radius:6px;color:#1a1a18;background:#fff}
+.dr-row label{font-size:12px;color:#6b6b67}
+.drbtn{padding:4px 12px;font-size:12px;border-radius:6px;cursor:pointer;font-weight:500}
+.drbtn.pri{background:#185fa5;color:#fff;border:none}.drbtn.pri:hover{background:#0c447c}
+.drbtn.sec{background:none;border:0.5px solid rgba(0,0,0,.15);color:#444441}.drbtn.sec:hover{background:#f5f4f0}
+
+/* filter button + badge */
+.filter-btn{display:flex;align-items:center;gap:5px;padding:4px 12px;font-size:12px;border:0.5px solid rgba(0,0,0,.15);border-radius:6px;cursor:pointer;background:#fff;color:#444441;white-space:nowrap;transition:border-color .1s}
+.filter-btn:hover{border-color:rgba(0,0,0,.3)}
+.filter-btn.has-filters{border-color:#185fa5;color:#185fa5;background:#f0f6ff}
+.filter-badge{background:#185fa5;color:#fff;border-radius:999px;font-size:10px;font-weight:500;padding:1px 5px;min-width:16px;text-align:center}
+
+/* active filter tags row */
+.ftag-row{display:none;padding:.4rem 1.5rem;gap:6px;flex-wrap:wrap;align-items:center;border-bottom:0.5px solid rgba(0,0,0,.06);background:#f8f7f4}
+.ftag-row.on{display:flex}
+.ftag{display:flex;align-items:center;gap:4px;background:#fff;border:0.5px solid #b5d4f4;border-radius:999px;padding:2px 8px 2px 10px;font-size:12px;color:#185fa5}
+.ftag-x{background:none;border:none;cursor:pointer;color:#185fa5;font-size:13px;line-height:1;padding:0;opacity:.7}.ftag-x:hover{opacity:1}
+.ftag-clear{font-size:12px;color:#888780;background:none;border:none;cursor:pointer;margin-left:4px}.ftag-clear:hover{color:#a32d2d}
+
+/* filter dropdown panel */
+.fpanel-wrap{position:relative}
+.fpanel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:560px;max-width:95vw;background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.12);z-index:200;overflow:hidden}
+.fpanel.open{display:block}
+.fpanel-header{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;border-bottom:0.5px solid rgba(0,0,0,.08)}
+.fpanel-title{font-size:13px;font-weight:500}
+.fpanel-actions{display:flex;gap:8px;align-items:center}
+.fpanel-clear{font-size:12px;color:#a32d2d;background:none;border:none;cursor:pointer}
+.fpanel-close{font-size:18px;color:#6b6b67;background:none;border:none;cursor:pointer;line-height:1;padding:0 2px}
+.fpanel-body{display:grid;grid-template-columns:1fr 1fr;gap:0;max-height:420px;overflow-y:auto}
+.fdim{padding:.75rem 1rem;border-bottom:0.5px solid rgba(0,0,0,.06)}
+.fdim:nth-child(odd){border-right:0.5px solid rgba(0,0,0,.06)}
+.fdim-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:#6b6b67;margin-bottom:6px}
+.fopt{display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;font-size:13px;color:#1a1a18}
+.fopt:hover{color:#185fa5}
+.fopt input[type=checkbox]{width:13px;height:13px;cursor:pointer;accent-color:#185fa5;flex-shrink:0}
+.fopt-count{font-size:11px;color:#888780;margin-left:auto}
+.fpanel-footer{padding:.6rem 1rem;border-top:0.5px solid rgba(0,0,0,.08);display:flex;justify-content:flex-end}
+.fpanel-apply{padding:5px 16px;background:#185fa5;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer}.fpanel-apply:hover{background:#0c447c}
+
+/* tabs */
+.tabbar{display:flex;padding:0 1.5rem;background:#fff;border-bottom:0.5px solid rgba(0,0,0,.1)}
+.tab{padding:.6rem 1.1rem;font-size:13px;border:none;background:none;cursor:pointer;color:#6b6b67;border-bottom:2px solid transparent;white-space:nowrap;transition:color .1s}
+.tab:hover{color:#1a1a18}
+.tab.active{color:#1a1a18;font-weight:500;border-bottom-color:#1a1a18}
+
+/* content */
+.dash{display:none}
+.tabpane{display:none;padding:1.25rem 1.5rem;max-width:1200px;margin:0 auto}
+.tabpane.active{display:block}
+.slabel{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:#6b6b67;margin-bottom:8px;margin-top:1.4rem}
+.slabel:first-child{margin-top:0}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.mc{background:#fff;border-radius:8px;border:0.5px solid rgba(0,0,0,.08);padding:13px 15px;display:flex;flex-direction:column}
+.mc-lbl{font-size:11px;color:#6b6b67;margin-bottom:auto;padding-bottom:6px;display:flex;align-items:flex-start;min-height:28px}
+.mc-val{font-size:22px;font-weight:500;line-height:1}
+.mc-sub{font-size:11px;color:#888780;margin-top:3px;min-height:15px}
+.mc.grn .mc-val{color:#0f6e56}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:6px}
+.cc{background:#fff;border-radius:12px;border:0.5px solid rgba(0,0,0,.08);padding:1.1rem 1.25rem}
+.cc.full{grid-column:1/-1}
+.ct{font-size:13px;font-weight:500;margin-bottom:.75rem}
+.cw{position:relative;width:100%}
+.leg{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}
+.li{display:flex;align-items:center;gap:4px;font-size:11px;color:#6b6b67}
+.ld{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.04em;color:#6b6b67;padding:0 8px 7px 0;border-bottom:0.5px solid rgba(0,0,0,.1)}
+.tbl td{padding:7px 8px 7px 0;border-bottom:0.5px solid rgba(0,0,0,.06);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr.clk{cursor:pointer}.tbl tr.clk:hover td{background:#f8f7f4}
+.pill{display:inline-block;font-size:11px;padding:2px 7px;border-radius:999px;font-weight:500}
+.ok{background:#eaf3de;color:#3b6d11}.warn{background:#faeeda;color:#854f0b}.bad{background:#fcebeb;color:#a32d2d}
+.bbg{background:rgba(0,0,0,.07);border-radius:3px;height:5px;width:100%}
+.bf{height:5px;border-radius:3px;background:#378add}.bf.w{background:#ef9f27}.bf.b{background:#e24b4a}
+.hint{font-size:11px;color:#888780;margin-top:8px}
+
+/* tooltips */
+.tip-wrap{position:relative;display:inline-flex;align-items:center}
+.tip-icon{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:rgba(0,0,0,.08);color:#6b6b67;font-size:10px;font-weight:600;cursor:default;margin-left:5px;flex-shrink:0;line-height:1;border:none;text-transform:none;letter-spacing:normal}
+.tip-icon:hover{background:rgba(24,95,165,.15);color:#185fa5}
+.tip-box{display:none;position:absolute;width:260px;background:#1a1a18;color:#fff;font-size:12px;line-height:1.5;padding:8px 11px;border-radius:8px;z-index:9999;pointer-events:none;font-weight:400;text-transform:none;letter-spacing:normal;text-align:left;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.ct-row{display:flex;align-items:center;gap:0;margin-bottom:.75rem}
+.ct-row .ct{margin-bottom:0}
+
+@media(max-width:700px){.cgrid{grid-template-columns:1fr}.mgrid{grid-template-columns:repeat(2,1fr)}.tabbar{overflow-x:auto}.fpanel-body{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="uwrap" id="uwrap">
+  <div class="dz" id="dz">
+    <div class="dz-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg></div>
+    <div class="dz-title">Drop your HMIS Excel file here</div>
+    <div class="dz-sub">Supports .xlsx and .xls</div>
+    <input type="file" id="fi" accept=".xlsx,.xls" style="display:none">
+    <button class="btn-up" id="btn-browse">Browse file</button>
+  </div>
+  <div id="uerr"></div>
+</div>
+
+<div class="dash" id="dash">
+  <div class="ctrl">
+    <div class="ctrl-top">
+      <div><span class="ctrl-title">HMIS Analytics</span><span class="ctrl-sub">Do Good Multnomah</span></div>
+      <div class="ctrl-right">
+        <span class="ctrl-fname" id="fname-row"></span>
+        <button class="ctrl-reset" id="btn-manage-providers" style="display:none">Manage providers</button>
+        <button class="ctrl-reset" id="btn-reset">&#8635; Load new file</button>
+      </div>
+    </div>
+    <div class="ctrl-periods">
+      <div class="ptoggle" id="ptoggle"></div>
+      <button id="ns-toggle" style="display:none;align-items:center;gap:5px;padding:4px 12px;font-size:12px;border:0.5px solid rgba(0,0,0,.15);border-radius:6px;cursor:pointer;background:#fff;color:#444441;white-space:nowrap;transition:all .1s" onclick="toggleNewlyServed()">
+        Newly served only
+      </button>
+      <div class="dr-row" id="dr-row" style="display:none!important">
+        <label>From</label><input type="date" id="dr-start">
+        <label>To</label><input type="date" id="dr-end">
+        <button class="drbtn pri" id="dr-apply">Apply</button>
+        <button class="drbtn sec" id="dr-cancel">Cancel</button>
+      </div>
+      <div class="fpanel-wrap" id="fpanel-wrap" style="margin-left:auto">
+        <button class="filter-btn" id="filter-btn">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          Filters <span class="filter-badge" id="filter-badge" style="display:none">0</span>
+        </button>
+        <div class="fpanel" id="fpanel">
+          <div class="fpanel-header">
+            <span class="fpanel-title">Filter dashboard</span>
+            <div class="fpanel-actions">
+              <button class="fpanel-clear" id="fpanel-clear">Clear all</button>
+              <button class="fpanel-close" id="fpanel-close">&#x2715;</button>
+            </div>
+          </div>
+          <div class="fpanel-body" id="fpanel-body"></div>
+          <div class="fpanel-footer"><button class="fpanel-apply" id="fpanel-apply">Apply filters</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="ftag-row" id="ftag-row"></div>
+    <div class="tabbar" id="tabbar">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="demographics">Demographics</button>
+      <button class="tab" data-tab="outcomes">Housing outcomes</button>
+      <button class="tab" data-tab="trends">Trends</button>
+      <button class="tab" data-tab="dq">Data quality</button>
+    </div>
+  </div>
+
+  <div class="tabpane active" id="tab-overview">
+    <div class="slabel">Key metrics</div>
+    <div class="mgrid" id="mgrid"></div>
+    <div class="slabel">Provider breakdown</div>
+    <div class="cc" id="providers"></div>
+  </div>
+  <div class="tabpane" id="tab-demographics"><div class="cgrid" id="demos"></div></div>
+  <div class="tabpane" id="tab-outcomes"><div class="cgrid" id="outcomes"></div></div>
+  <div class="tabpane" id="tab-trends"><div class="cgrid" id="trends"></div></div>
+  <div class="tabpane" id="tab-dq"><div class="cc" id="dq"></div></div>
+</div>
+
+<script>
+const COL={
+  id:'Client Unique Id',provider:'HMIS Provider',
+  entry:'Entry Date',exit:'Exit Date',
+  los:'Length of Stay (Leavers in FY)',
+  dest:'Exit Destination',destCw:'Exit Destination Crosswalk',
+  ns:'Newly Served in FY',nsq:'Newly Served Qtr_All People',
+  placed:'Placed in FY',age:'Age at Entry',ageBk:'Age Breakout_Standard',
+  gender:'Gender(894)',race:'Race and Ethnicity(11203)',
+  vet:'Veteran Status',vetCw:'Veteran Status Crosswalk',
+  dis:'Does the client have a disabling condition?(1212)',disCw:'Disabling Condition Crosswalk',
+  rel:'Relationship to Head of Household',hhId:'Household ID'
+};
+const CLRS=['#378add','#1d9e75','#d85a30','#7f77dd','#ba7517','#d4537e','#639922','#888780','#e24b4a','#0f6e56','#5dcaa5','#ef9f27'];
+
+let allRows=[],charts=[],period='fy',activeFilters={},pendingFilters={};
+let FY_QUARTERS={},FY_START=null,FY_END=null,customStart=null,customEnd=null;
+let activeTab='overview',excludedProviders=new Set(),newlyServedOnly=false;
+
+const DEFAULT_EXCLUDED=[];
+
+// Filter dimensions definition
+const DIMS=[
+  {key:'provider',label:'Provider',fn:r=>g(r,'provider')},
+  {key:'vet',label:'Veteran status',fn:r=>g(r,'vetCw')||g(r,'vet')},
+  {key:'gender',label:'Gender',fn:r=>g(r,'gender')},
+  {key:'race',label:'Race & ethnicity',fn:r=>g(r,'race')},
+  {key:'age',label:'Age group',fn:r=>g(r,'ageBk')},
+  {key:'dis',label:'Disabling condition',fn:r=>g(r,'disCw')||g(r,'dis')},
+  {key:'dest',label:'Exit destination',fn:r=>g(r,'destCw')||g(r,'dest')},
+  {key:'placed',label:'Housing placement',fn:r=>flag(r,'placed')?'Placed':'Not placed'},
+];
+
+function g(r,k){const v=r[COL[k]];return(v==null)?'':String(v).trim();}
+function flag(r,k){return g(r,k)==='1';}
+function pct(n,d){return d===0?'0%':Math.round(n/d*100)+'%';}
+function uCount(rows,fn){return new Set(rows.map(fn).filter(Boolean)).size;}
+function uBy(rows,fn){const s=new Set(),o=[];rows.forEach(r=>{const k=fn(r);if(k&&!s.has(k)){s.add(k);o.push(r);}});return o;}
+function freqU(rows,gFn,idFn){
+  const m={};
+  rows.forEach(r=>{const k=gFn(r)||'Unknown';const id=idFn(r);if(!m[k])m[k]=new Set();if(id)m[k].add(id);});
+  return Object.entries(m).map(([k,s])=>[k,s.size]).sort((a,b)=>b[1]-a[1]);
+}
+function isVet(r){const v=(g(r,'vetCw')||g(r,'vet')).toLowerCase();return v==='veteran'||v==='veterans'||v==='yes'||v==='1'||v==='true';}
+function isPerm(r){return(g(r,'destCw')||g(r,'dest')).toLowerCase().includes('permanent');}
+function normDate(d){
+  // Normalize to UTC midnight to avoid timezone shifts
+  return new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()));
+}
+function toDate(r,k){
+  const v=r[COL[k]];
+  if(v==null||v==='')return null;
+  if(v instanceof Date){return isNaN(v.getTime())?null:normDate(v);}
+  if(typeof v==='number'&&v>0){
+    const d=new Date(Math.round((v-25569)*86400000));
+    return isNaN(d.getTime())?null:normDate(d);
+  }
+  if(typeof v==='string'){
+    const s=v.trim();if(!s)return null;
+    // ISO string — parse directly (already UTC)
+    if(s.includes('T')){const d=new Date(s);return isNaN(d.getTime())?null:normDate(d);}
+    // M/D/YYYY or MM/DD/YYYY — treat as local date, build UTC
+    const mdy=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if(mdy){return new Date(Date.UTC(+mdy[3],+mdy[1]-1,+mdy[2]));}
+    // YYYY-MM-DD
+    const ymd=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(ymd){return new Date(Date.UTC(+ymd[1],+ymd[2]-1,+ymd[3]));}
+    const d=new Date(s);return isNaN(d.getTime())?null:normDate(d);
+  }
+  return null;
+}
+function inRange(d,s,e){return d&&d>=s&&d<=e;}
+function fmt(d){return(d.getUTCMonth()+1)+'/'+(d.getUTCDate())+'/'+(d.getUTCFullYear()%100);}
+function median(arr){if(!arr.length)return null;const s=[...arr].sort((a,b)=>a-b);const m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2;}
+
+function periodFilter(r){
+  const ed=toDate(r,'entry');
+  const xd=toDate(r,'exit');
+  if(period==='fy'){
+    // Entry before end date AND (no exit OR exit on/after FY start)
+    if(!ed||!FY_END||!FY_START)return true;
+    const endDatePlusOne=new Date(FY_END.getTime()+86400000);
+    return ed<endDatePlusOne&&(!xd||xd>=FY_START);
+  }
+  if(period==='ns'){
+    // Entry on/after FY start AND before end date plus one
+    if(!ed||!FY_START||!FY_END)return flag(r,'ns');
+    const endDatePlusOne=new Date(FY_END.getTime()+86400000);
+    return ed>=FY_START&&ed<endDatePlusOne;
+  }
+  if(period==='nsq'){
+    // Entry on/after quarter start AND before end date plus one
+    if(!ed||!FY_END)return flag(r,'nsq');
+    const qKeys=Object.keys(FY_QUARTERS).sort();
+    const lastQ=qKeys[qKeys.length-1];
+    const[qs]=FY_QUARTERS[lastQ]||[];
+    const endDatePlusOne=new Date(FY_END.getTime()+86400000);
+    return qs?ed>=qs&&ed<endDatePlusOne:flag(r,'nsq');
+  }
+  if(period==='custom'){
+    if(!customStart||!customEnd)return true;
+    return ed?inRange(ed,customStart,customEnd):false;
+  }
+  // Q1-Q4: active during quarter (entered before quarter end AND exited after quarter start or still active)
+  if(!ed)return false;
+  const[qs,qe]=FY_QUARTERS[period]||[];
+  if(!qs)return false;
+  return ed<=qe&&(!xd||xd>=qs);
+}
+
+function applyActiveFilters(rows){
+  return rows.filter(r=>{
+    return Object.entries(activeFilters).every(([dimKey,vals])=>{
+      if(!vals||!vals.size)return true;
+      const dim=DIMS.find(d=>d.key===dimKey);
+      if(!dim)return true;
+      return vals.has(dim.fn(r)||'Unknown');
+    });
+  });
+}
+
+function toggleDimFilter(dimKey,val){
+  if(!activeFilters[dimKey])activeFilters[dimKey]=new Set();
+  if(activeFilters[dimKey].has(val)){
+    activeFilters[dimKey].delete(val);
+    if(!activeFilters[dimKey].size)delete activeFilters[dimKey];
+  } else {
+    activeFilters[dimKey].add(val);
+  }
+  pendingFilters[dimKey]=activeFilters[dimKey]?new Set(activeFilters[dimKey]):new Set();
+  updateFilterUI();
+  render();
+}
+
+function tip(text){
+  const escaped=text.replace(/"/g,'&quot;');
+  return`<span class="tip-wrap"><button class="tip-icon" tabindex="0" data-tiptext="${escaped}" onmouseenter="showTip(event,this)" onmouseleave="hideTip()">i</button></span>`;
+}
+
+function showTip(e,el){
+  let box=document.getElementById('global-tip');
+  if(!box){
+    box=document.createElement('div');
+    box.id='global-tip';
+    box.className='tip-box';
+    document.body.appendChild(box);
+  }
+  box.textContent=el.dataset.tiptext||'';
+  box.style.display='block';
+  const r=el.getBoundingClientRect();
+  const bw=260;
+  let left=r.left+r.width/2-bw/2;
+  let top=r.bottom+8+window.scrollY;
+  if(left<8)left=8;
+  if(left+bw>window.innerWidth-8)left=window.innerWidth-bw-8;
+  box.style.left=left+'px';
+  box.style.top=top+'px';
+}
+function hideTip(){const box=document.getElementById('global-tip');if(box)box.style.display='none';}
+
+function toggleNewlyServed(){
+  newlyServedOnly=!newlyServedOnly;
+  const btn=document.getElementById('ns-toggle');
+  if(newlyServedOnly){
+    btn.style.background='#f0f6ff';
+    btn.style.borderColor='#185fa5';
+    btn.style.color='#185fa5';
+    btn.style.fontWeight='500';
+  } else {
+    btn.style.background='#fff';
+    btn.style.borderColor='rgba(0,0,0,.15)';
+    btn.style.color='#444441';
+    btn.style.fontWeight='';
+  }
+  render();
+}
+
+function getRows(){
+  const base=allRows.filter(r=>!excludedProviders.has(g(r,'provider')));
+  let rows=applyActiveFilters(base.filter(periodFilter));
+  if(newlyServedOnly){
+    // Filter to clients whose entry date falls within the current period
+    const pStart=period==='fy'||period==='ns'||period==='nsq'?FY_START:
+      period==='custom'?customStart:(FY_QUARTERS[period]||[])[0];
+    const pEnd=period==='fy'||period==='ns'||period==='nsq'?FY_END:
+      period==='custom'?customEnd:(FY_QUARTERS[period]||[])[1];
+    const pEndPlusOne=pEnd?new Date(pEnd.getTime()+86400000):null;
+    rows=rows.filter(r=>{
+      const ed=toDate(r,'entry');
+      return ed&&pStart&&pEndPlusOne&&ed>=pStart&&ed<pEndPlusOne;
+    });
+  }
+  return rows;
+}
+
+function totalActiveFilterCount(){
+  return Object.values(activeFilters).reduce((a,v)=>a+(v?v.size:0),0);
+}
+
+/* ── filter panel ── */
+function buildFilterPanel(){
+  const body=document.getElementById('fpanel-body');
+  body.innerHTML='';
+  // Only show values from rows that aren't excluded
+  const baseRows=allRows.filter(r=>!excludedProviders.has(g(r,'provider')));
+  DIMS.forEach(dim=>{
+    const allVals=freqU(baseRows,dim.fn,r=>g(r,'id'));
+    const selected=activeFilters[dim.key]||new Set();
+    const pending=pendingFilters[dim.key]||new Set(selected);
+    // Remove any active filters that are no longer in the data
+    if(activeFilters[dim.key]){
+      [...activeFilters[dim.key]].forEach(v=>{
+        if(!allVals.some(([val])=>val===v)){activeFilters[dim.key].delete(v);}
+      });
+      if(!activeFilters[dim.key].size)delete activeFilters[dim.key];
+    }
+    const div=document.createElement('div');div.className='fdim';
+    div.innerHTML=`<div class="fdim-label">${dim.label}</div>`+
+      allVals.slice(0,12).map(([val,cnt])=>{
+        const v=val||'Unknown';
+        const chk=pending.has(v)?'checked':'';
+        return`<label class="fopt"><input type="checkbox" data-dim="${dim.key}" data-val="${v.replace(/"/g,'&quot;')}" ${chk}><span>${v}</span><span class="fopt-count">${cnt}</span></label>`;
+      }).join('');
+    body.appendChild(div);
+  });
+}
+
+function readPendingFromPanel(){
+  pendingFilters={};
+  document.querySelectorAll('#fpanel-body input[type=checkbox]').forEach(cb=>{
+    const dim=cb.dataset.dim,val=cb.dataset.val;
+    if(cb.checked){
+      if(!pendingFilters[dim])pendingFilters[dim]=new Set();
+      pendingFilters[dim].add(val);
+    }
+  });
+}
+
+function applyPendingFilters(){
+  activeFilters={};
+  Object.entries(pendingFilters).forEach(([k,v])=>{if(v&&v.size)activeFilters[k]=new Set(v);});
+  updateFilterUI();
+  render();
+}
+
+function clearAllFilters(){
+  activeFilters={};pendingFilters={};
+  updateFilterUI();
+  buildFilterPanel();
+  render();
+}
+
+function updateFilterUI(){
+  const count=totalActiveFilterCount();
+  const badge=document.getElementById('filter-badge');
+  const btn=document.getElementById('filter-btn');
+  badge.textContent=count;
+  badge.style.display=count?'inline':'none';
+  btn.classList.toggle('has-filters',count>0);
+
+  const tagRow=document.getElementById('ftag-row');
+  if(!count){tagRow.classList.remove('on');return;}
+  tagRow.classList.add('on');
+  const tags=[];
+  Object.entries(activeFilters).forEach(([dimKey,vals])=>{
+    const dim=DIMS.find(d=>d.key===dimKey);if(!dim)return;
+    vals.forEach(v=>{
+      tags.push(`<span class="ftag">${dim.label}: ${v}<button class="ftag-x" data-dim="${dimKey}" data-val="${v.replace(/"/g,'&quot;')}">&#x2715;</button></span>`);
+    });
+  });
+  tags.push(`<button class="ftag-clear" id="ftag-clear-all">Clear all</button>`);
+  tagRow.innerHTML=tags.join('');
+  tagRow.querySelectorAll('.ftag-x').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const dim=btn.dataset.dim,val=btn.dataset.val;
+      if(activeFilters[dim]){activeFilters[dim].delete(val);if(!activeFilters[dim].size)delete activeFilters[dim];}
+      pendingFilters=JSON.parse(JSON.stringify(Object.fromEntries(Object.entries(activeFilters).map(([k,v])=>[k,[...v]]))));
+      Object.keys(pendingFilters).forEach(k=>pendingFilters[k]=new Set(pendingFilters[k]));
+      updateFilterUI();render();
+    });
+  });
+  const ca=document.getElementById('ftag-clear-all');
+  if(ca)ca.addEventListener('click',clearAllFilters);
+}
+
+/* ── charts ── */
+function mkChart(id,cfg){const el=document.getElementById(id);if(!el)return;const c=new Chart(el.getContext('2d'),cfg);charts.push(c);return c;}
+function destroyCharts(){charts.forEach(c=>c.destroy());charts=[];}
+function leg(labels,colors){return`<div class="leg">${labels.map((l,i)=>`<span class="li"><span class="ld" style="background:${colors[i%colors.length]}"></span>${l}</span>`).join('')}</div>`;}
+
+/* ── fiscal periods ── */
+function buildFiscalPeriods(rows){
+  const dates=rows.map(r=>toDate(r,'entry')).filter(Boolean);
+  if(!dates.length)return;
+
+  // Use newly-served entry dates to detect the current FY — avoids carry-over enrollments
+  // from prior years pulling fyStartYear back. Fall back to all dates if no ns flag.
+  const nsDates=rows.filter(r=>flag(r,'ns')).map(r=>toDate(r,'entry')).filter(Boolean);
+  const fyDates=nsDates.length?nsDates:dates;
+
+  // Find the most recent date to anchor the FY
+  let maxD=fyDates[0];
+  fyDates.forEach(d=>{if(d>maxD)maxD=d;});
+
+  // Also get overall max across entry dates for capping period end
+  let overallMax=dates[0];
+  dates.forEach(d=>{if(d>overallMax)overallMax=d;});
+
+  // If the file contained a report end date in the warning row, use that as FY_END
+  // This ensures exits up to the actual report end date are included
+  if(window._reportEndDate&&window._reportEndDate>overallMax){
+    overallMax=window._reportEndDate;
+  }
+
+  // Detect FY start year from the max newly-served date
+  const fyStartYear=maxD.getUTCMonth()>=6?maxD.getUTCFullYear():maxD.getUTCFullYear()-1;
+
+  FY_START=new Date(Date.UTC(fyStartYear,6,1));FY_END=overallMax;
+  const allQ=[
+    {key:'q1',label:'Q1',s:new Date(Date.UTC(fyStartYear,6,1)),e:new Date(Date.UTC(fyStartYear,8,30))},
+    {key:'q2',label:'Q2',s:new Date(Date.UTC(fyStartYear,9,1)),e:new Date(Date.UTC(fyStartYear,11,31))},
+    {key:'q3',label:'Q3',s:new Date(Date.UTC(fyStartYear+1,0,1)),e:new Date(Date.UTC(fyStartYear+1,2,31))},
+    {key:'q4',label:'Q4',s:new Date(Date.UTC(fyStartYear+1,3,1)),e:new Date(Date.UTC(fyStartYear+1,5,30))},
+  ];
+  FY_QUARTERS={};
+  allQ.filter(q=>q.s<=overallMax&&q.e>=new Date(Date.UTC(fyStartYear,6,1))).forEach(q=>{FY_QUARTERS[q.key]=[q.s,q.e<overallMax?q.e:overallMax];});
+  const toISO=d=>d.toISOString().slice(0,10);
+  let btns=`<button class="pbtn active" data-period="fy">Total FY <span style="opacity:.6;font-size:11px">${fmt(FY_START)}–${fmt(overallMax)}</span></button>`;
+  Object.entries(FY_QUARTERS).forEach(([key,[qs,qe]])=>{
+    btns+=`<button class="pbtn" data-period="${key}">${key.toUpperCase()} <span style="opacity:.6;font-size:11px">${fmt(qs)}–${fmt(qe)}</span></button>`;
+  });
+  if(rows.some(r=>flag(r,'ns')||flag(r,'nsq'))){
+    document.getElementById('ns-toggle').style.display='flex';
+  }
+  btns+=`<button class="pbtn" data-period="custom" style="display:none">Custom range</button>`;
+  document.getElementById('ptoggle').innerHTML=btns;
+  document.getElementById('dr-start').value=toISO(FY_START);
+  document.getElementById('dr-end').value=toISO(overallMax);
+  document.getElementById('dr-start').min=toISO(FY_START);document.getElementById('dr-start').max=toISO(overallMax);
+  document.getElementById('dr-end').min=toISO(FY_START);document.getElementById('dr-end').max=toISO(overallMax);
+}
+
+/* ── render ── */
+function render(){
+  destroyCharts();
+  const rows=getRows();
+  if(activeTab==='overview'){buildMetrics(rows);buildProviders(rows);}
+  else if(activeTab==='demographics'){buildDemos(rows);}
+  else if(activeTab==='outcomes'){buildOutcomes(rows);}
+  else if(activeTab==='trends'){buildTrends();}
+  else if(activeTab==='dq'){buildDQ(allRows);}
+}
+
+/* ── overview ── */
+function buildMetrics(rows){
+  const total=uCount(rows,r=>g(r,'id'));
+  function getPStart(){if(period==='fy'||period==='ns'||period==='nsq')return FY_START;if(period==='custom')return customStart;const[qs]=FY_QUARTERS[period]||[];return qs;}
+  function getPEnd(){if(period==='fy'||period==='ns'||period==='nsq')return FY_END;if(period==='custom')return customEnd;const[,qe]=FY_QUARTERS[period]||[];return qe;}
+  const pStart=getPStart(),pEnd=getPEnd();
+  const pEndPlusOne=pEnd?new Date(pEnd.getTime()+86400000):null;
+  // Check all rows to find clients with any enrollment still active at period end
+  const activeIds=new Set(
+    allRows.filter(r=>{
+      if(excludedProviders.has(g(r,'provider')))return false;
+      const xd=toDate(r,'exit');
+      return !xd||(pEndPlusOne&&xd>=pEndPlusOne);
+    }).map(r=>g(r,'id')).filter(Boolean)
+  );
+  const leavers=rows.filter(r=>{
+    if(!g(r,'exit'))return false;
+    const xd=toDate(r,'exit');if(!xd)return false;
+    if(pStart&&pEndPlusOne&&xd>=pStart&&xd<pEndPlusOne)return true;
+    if(pStart&&xd<pStart)return activeIds.has(g(r,'id'));
+    return false;
+  });
+  const ul=uCount(leavers,r=>g(r,'id'));
+  const destFn=r=>g(r,'destCw')||g(r,'dest');
+  const placed=leavers.filter(r=>{const d=destFn(r);return d.startsWith('1:')||d.startsWith('2:');});
+  const up=uCount(placed,r=>g(r,'id'));
+  const rate=ul?Math.round(up/ul*100):null;
+  const los=rows.map(r=>parseFloat(g(r,'los'))).filter(v=>!isNaN(v)&&v>=0);
+  const avgLos=los.length?Math.round(los.reduce((a,b)=>a+b,0)/los.length):null;
+  const medLos=los.length?Math.round(median(los)):null;
+  const ages=rows.map(r=>parseFloat(g(r,'age'))).filter(v=>!isNaN(v)&&v>0&&v<120);
+  const avgAge=ages.length?Math.round(ages.reduce((a,b)=>a+b,0)/ages.length):null;
+  const uvets=uCount(rows.filter(isVet),r=>g(r,'id'));
+  const permPlaced=uCount(leavers.filter(r=>destFn(r).startsWith('1:')),r=>g(r,'id'));
+  const provs=new Set(rows.map(r=>g(r,'provider')).filter(Boolean)).size;
+
+  // Newly served — entry within the period (on/after period start, before period end + 1)
+  const newlyServed=uCount(rows.filter(r=>{
+    const ed=toDate(r,'entry');
+    return ed&&pStart&&pEndPlusOne&&ed>=pStart&&ed<pEndPlusOne;
+  }),r=>g(r,'id'));
+
+  const defs=[
+    {l:'Unique clients',v:total.toLocaleString(),s:'people served',cls:'',
+      t:'People with at least one enrollment where entry date is before the period end and exit date is blank or on/after the FY start date.'},
+    {l:'Newly served',v:newlyServed.toLocaleString(),s:total?Math.round(newlyServed/total*100)+'% of clients':'',cls:'',
+      t:'Unique clients whose entry date falls within the selected period. For Total FY this means entry on/after July 1. For quarters this means entry within that specific quarter.'},
+    {l:'Unique veterans',v:uvets.toLocaleString(),s:total?Math.round(uvets/total*100)+'% of clients':'',cls:'',
+      t:'Clients identified as U.S. military veterans based on the Veteran Status Crosswalk field.'},
+    {l:'Unique leavers',v:ul.toLocaleString(),s:'had an exit',cls:'',
+      t:'Distinct clients with at least one exit within the reporting period. Total exits may be higher if a client had multiple enrollments that ended in the period.'},
+    {l:'Positive placements',v:up.toLocaleString(),s:rate!==null?rate+'% of leavers':'',cls:'grn',
+      t:'Unique leavers who exited to a Permanent (category 1) or Temporary (category 2) housing situation.'},
+    {l:'Permanent housing exits',v:permPlaced.toLocaleString(),s:up?Math.round(permPlaced/up*100)+'% of placements':'',cls:'grn',
+      t:'Unique leavers who exited to a Permanent Housing Situation (category 1), such as a rental unit or owned home.'},
+    {l:'Avg length of stay',v:avgLos!==null?avgLos+' days':'N/A',s:medLos!==null?'median '+medLos+' days':'',cls:'',
+      t:'Average days between entry and exit for all enrollments with an exit date in the period. Median is shown to help identify skew from outliers. Emergency shelters only per HMIS summary.'},
+    {l:'Avg age at entry',v:avgAge!==null?avgAge+' yrs':'N/A',s:'',cls:'',
+      t:'Average age calculated at the time of program entry. Clients with multiple enrollments may appear in multiple age groups if they had a birthday between entries.'},
+    {l:'Active providers',v:provs.toLocaleString(),s:'programs',cls:'',
+      t:'Number of distinct HMIS provider programs with at least one active enrollment in the selected period.'},
+  ];
+  document.getElementById('mgrid').innerHTML=defs.map(m=>`
+    <div class="mc ${m.cls}">
+      <div class="mc-lbl" style="display:flex;align-items:center">${m.l}${tip(m.t)}</div>
+      <div class="mc-val">${m.v}</div>
+      <div class="mc-sub">${m.s||''}</div>
+    </div>`).join('');
+}
+
+function buildProviders(rows){
+  const map={};
+  rows.forEach(r=>{
+    const p=g(r,'provider')||'Unknown',id=g(r,'id');if(!id)return;
+    if(!map[p])map[p]={all:new Set(),ns:new Set(),placed:new Set(),perm:new Set(),los:[],q:{}};
+    map[p].all.add(id);
+    if(flag(r,'ns'))map[p].ns.add(id);
+    const d=g(r,'destCw')||g(r,'dest');
+    if(d.startsWith('1:')||d.startsWith('2:'))map[p].placed.add(id);
+    if(d.startsWith('1:'))map[p].perm.add(id);
+    const l=parseFloat(g(r,'los'));if(!isNaN(l)&&l>=0)map[p].los.push(l);
+    const ed=toDate(r,'entry');
+    if(ed){Object.entries(FY_QUARTERS).forEach(([qk,[qs,qe]])=>{if(inRange(ed,qs,qe)){if(!map[p].q[qk])map[p].q[qk]=new Set();map[p].q[qk].add(id);}});}
+  });
+  function sortKey(name){return name.replace(/^Do Good Multnomah:?\s*/i,'').toLowerCase();}
+  const sorted=Object.entries(map).sort((a,b)=>sortKey(a[0]).localeCompare(sortKey(b[0])));
+  const qKeys=Object.keys(FY_QUARTERS);
+  document.getElementById('providers').innerHTML=`
+    <div class="ct">Clients by provider — unique people</div>
+    <div style="overflow-x:auto"><table class="tbl" id="ptbl">
+      <thead><tr>
+        <th>Provider</th>
+        <th style="text-align:right">Total FY${tip('Unique clients with at least one active enrollment in the fiscal year at this provider.')}</th>
+        ${qKeys.map(k=>`<th style="text-align:right">${k.toUpperCase()}${tip('Unique clients whose entry date falls within this fiscal quarter at this provider.')}</th>`).join('')}
+        <th style="text-align:right">Newly served${tip('Unique clients whose first enrollment entry in the fiscal year was at this provider.')}</th>
+        <th style="text-align:right">Placed${tip('Unique clients who exited to a Permanent or Temporary housing situation from this provider.')}</th>
+        <th style="text-align:right">Perm housing${tip('Unique clients who exited to a Permanent Housing Situation (category 1) from this provider.')}</th>
+        <th style="text-align:right">Rate${tip('Percentage of total clients at this provider who were placed in housing (permanent or temporary).')}</th>
+        <th style="text-align:right">Avg LOS${tip('Average length of stay in days for clients who exited this provider within the fiscal year.')}</th>
+      </tr></thead>
+      <tbody>${sorted.map(([p,d],i)=>{
+        const avgL=d.los.length?Math.round(d.los.reduce((a,b)=>a+b,0)/d.los.length):'-';
+        return`<tr class="clk" data-pi="${i}">
+          <td>${p}</td><td style="text-align:right">${d.all.size}</td>
+          ${qKeys.map(k=>`<td style="text-align:right">${(d.q[k]||new Set()).size}</td>`).join('')}
+          <td style="text-align:right">${d.ns.size}</td><td style="text-align:right">${d.placed.size}</td>
+          <td style="text-align:right">${d.perm.size}</td><td style="text-align:right">${pct(d.placed.size,d.all.size)}</td>
+          <td style="text-align:right">${avgL}</td>
+        </tr>`;}).join('')}
+      </tbody>
+    </table></div>
+    <div class="hint">Click a row to filter to that provider.</div>`;
+  window._provList=sorted.map(([p])=>p);
+  document.getElementById('ptbl').addEventListener('click',e=>{
+    const tr=e.target.closest('tr[data-pi]');if(!tr)return;
+    const p=window._provList[+tr.dataset.pi];
+    if(!activeFilters.provider)activeFilters.provider=new Set();
+    if(activeFilters.provider.has(p)){activeFilters.provider.delete(p);if(!activeFilters.provider.size)delete activeFilters.provider;}
+    else activeFilters.provider.add(p);
+    pendingFilters.provider=activeFilters.provider?new Set(activeFilters.provider):new Set();
+    setTimeout(()=>{updateFilterUI();render();},0);
+  });
+}
+
+/* ── demographics ── */
+function buildDemos(rows){
+  const container=document.getElementById('demos');container.innerHTML='';
+  const totalUnique=uCount(rows,r=>g(r,'id'));
+
+  // Gender — horizontal bar, multi-select (person can appear in multiple categories)
+  const genderData=freqU(rows,r=>g(r,'gender'),r=>g(r,'id')).slice(0,10);
+  const genCard=document.createElement('div');genCard.className='cc';
+  const genH=Math.max(180,genderData.length*36+60);
+  genCard.innerHTML=`<div class="ct-row"><div class="ct">Gender</div>${tip('People are reported in each gender category they identify with. A person may appear in multiple categories, so percentages can exceed 100% of total clients.')}<span style="font-size:11px;font-weight:400;color:#888780;margin-left:6px">% of ${totalUnique.toLocaleString()} clients</span></div><div class="cw" style="height:${genH}px"><canvas id="c-gen"></canvas></div><div class="hint">Click a bar to filter</div>`;
+  container.appendChild(genCard);
+  setTimeout(()=>{
+    mkChart('c-gen',{type:'bar',
+      data:{labels:genderData.map(d=>d[0]),datasets:[{data:genderData.map(d=>d[1]),backgroundColor:'#378add',borderRadius:3,borderSkipped:false}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+ctx.parsed.x+' ('+pct(ctx.parsed.x,totalUnique)+')'}}},
+        scales:{x:{grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#6b6b67'}},y:{ticks:{color:'#444441',font:{size:12}}}},
+        onClick:(evt,els)=>{if(!els.length)return;const val=genderData[els[0].index][0];setTimeout(()=>toggleDimFilter('gender',val),0);}
+      }
+    });
+  },0);
+
+  // Other demographics — doughnuts
+  const sections=[
+    {id:'age',title:'Age at entry',fn:r=>g(r,'ageBk'),dimKey:'age',
+      t:'Age is calculated at program entry. A client may appear in multiple age groups if they had multiple enrollments with a birthday between entries.'},
+    {id:'race',title:'Race & ethnicity',fn:r=>g(r,'race'),dimKey:'race',
+      t:'Each person is reported in the mutually exclusive Race & Ethnicity category per HMIS crosswalk. Includes BIPOC, Non-Hispanic White, and unreported categories.'},
+    {id:'vet',title:'Veteran status',fn:r=>g(r,'vetCw')||g(r,'vet'),dimKey:'vet',
+      t:'Based on the U.S. Military Veteran field. "Unreported" includes blank, Client doesn\'t know, Client prefers not to answer, and Data not collected responses.'},
+    {id:'dis',title:'Disabling condition',fn:r=>g(r,'disCw')||g(r,'dis'),dimKey:'dis',
+      t:'Based on whether the client has a disabling condition per HMIS field 1212. "Unreported" includes blank and unknown responses. A client with multiple records may be counted in multiple categories.'},
+  ];
+  sections.forEach(s=>{
+    const data=freqU(rows,s.fn,r=>g(r,'id')).slice(0,10);
+    const total=data.reduce((a,b)=>a+b[1],0);
+    const card=document.createElement('div');card.className='cc';
+    card.innerHTML=`<div class="ct-row"><div class="ct">${s.title}</div>${tip(s.t)}</div>${leg(data.map((d,i)=>d[0]+' ('+d[1]+')'),CLRS)}<div class="cw" style="height:195px"><canvas id="c-${s.id}"></canvas></div><div class="hint">Click a segment to filter</div>`;
+    container.appendChild(card);
+    setTimeout(()=>{
+      mkChart('c-'+s.id,{type:'doughnut',
+        data:{labels:data.map(d=>d[0]),datasets:[{data:data.map(d=>d[1]),backgroundColor:CLRS.slice(0,data.length),borderWidth:1,borderColor:'#fff'}]},
+        options:{responsive:true,maintainAspectRatio:false,cutout:'56%',
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+ctx.label+': '+ctx.parsed+' ('+pct(ctx.parsed,total)+')'}}},
+          onClick:(evt,els)=>{if(!els.length)return;const val=data[els[0].index][0];setTimeout(()=>toggleDimFilter(s.dimKey,val),0);}
+        }
+      });
+    },0);
+  });
+
+  // cross-tab
+  const leavers=rows.filter(r=>g(r,'exit')!=='');
+  const demoKeys=[
+    {label:'Race & ethnicity',fn:r=>g(r,'race')},
+    {label:'Veteran status',fn:r=>g(r,'vetCw')||g(r,'vet')},
+    {label:'Gender',fn:r=>g(r,'gender')},
+    {label:'Age group',fn:r=>g(r,'ageBk')},
+  ];
+  const destGroups=['1: Permanent Housing Situations','2: Temporary Housing Situations','3: Institutional Situations','4: Homeless Situations','5: Other'];
+  const xtCard=document.createElement('div');xtCard.className='cc full';
+  xtCard.innerHTML=`<div class="ct-row"><div class="ct">Exit destination by demographic</div>${tip('Shows how exit destinations break down across demographic groups. Uses total exits (not unique leavers), so a client with multiple exits may appear more than once. Switch demographic using the buttons.')}</div>
+    <div style="display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap" id="xt-tabs">
+      ${demoKeys.map((d,i)=>`<button class="pbtn${i===0?' active':''}" style="${i===0?'background:#fff':'background:transparent'}" data-xti="${i}">${d.label}</button>`).join('')}
+    </div><div id="xt-content"></div>`;
+  container.appendChild(xtCard);
+  function renderXT(idx){
+    const dk=demoKeys[idx];
+    const groups=freqU(leavers,dk.fn,r=>g(r,'id')).slice(0,8).map(d=>d[0]);
+    const destLabels=destGroups.map(d=>d.split(': ')[1]||d);
+    const datasets=destGroups.map((dest,di)=>({
+      label:destLabels[di],
+      data:groups.map(grp=>uCount(leavers.filter(r=>dk.fn(r)===grp&&(g(r,'destCw')||g(r,'dest'))===dest),r=>g(r,'id'))),
+      backgroundColor:CLRS[di%CLRS.length],borderRadius:2,borderSkipped:false
+    }));
+    const h=Math.max(280,groups.length*52+80);
+    document.getElementById('xt-content').innerHTML=`<div class="cw" style="height:${h}px"><canvas id="c-xt"></canvas></div><div class="hint">Unique leavers by exit destination</div>`;
+    setTimeout(()=>{
+      mkChart('c-xt',{type:'bar',data:{labels:groups,datasets},
+        options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:true,position:'top',labels:{boxWidth:10,font:{size:11}}}},
+          scales:{x:{stacked:true,grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#6b6b67'}},y:{stacked:true,ticks:{color:'#444441',font:{size:12}}}}
+        }
+      });
+    },0);
+  }
+  renderXT(0);
+  xtCard.querySelector('#xt-tabs').addEventListener('click',e=>{
+    const btn=e.target.closest('[data-xti]');if(!btn)return;
+    xtCard.querySelectorAll('[data-xti]').forEach(b=>{b.classList.remove('active');b.style.background='transparent';});
+    btn.classList.add('active');btn.style.background='#fff';
+    const ch=charts.find(c=>c.canvas&&c.canvas.id==='c-xt');if(ch){ch.destroy();charts=charts.filter(c=>c!==ch);}
+    renderXT(+btn.dataset.xti);
+  });
+}
+
+/* ── outcomes ── */
+function buildOutcomes(rows){
+  const container=document.getElementById('outcomes');container.innerHTML='';
+
+  // Per HMIS methodology:
+  // 1. All exits where exit date falls within the period
+  // 2. Prior exits for clients who still have an active enrollment at period end
+  function getPeriodStart(){
+    if(period==='fy'||period==='ns'||period==='nsq')return FY_START;
+    if(period==='custom')return customStart;
+    const[qs]=FY_QUARTERS[period]||[];return qs;
+  }
+  function getPeriodEnd(){
+    if(period==='fy'||period==='ns'||period==='nsq')return FY_END?new Date(FY_END.getTime()+86400000):null;
+    if(period==='custom')return customEnd?new Date(customEnd.getTime()+86400000):null;
+    const[,qe]=FY_QUARTERS[period]||[];return qe?new Date(qe.getTime()+86400000):null;
+  }
+  const periodStart=getPeriodStart();
+  const periodEnd=getPeriodEnd();
+
+  // Find clients with ANY active enrollment at period end across all their rows
+  // Must check allRows not period-filtered rows to avoid false positives
+  const activeAtEnd=new Set(
+    allRows.filter(r=>{
+      if(excludedProviders.has(g(r,'provider')))return false;
+      const xd=toDate(r,'exit');
+      return !xd||(periodEnd&&xd>=periodEnd);
+    }).map(r=>g(r,'id')).filter(Boolean)
+  );
+
+  function exitInPeriod(r){
+    const xd=toDate(r,'exit');
+    if(!xd)return false;
+    // Exit within period
+    if(periodStart&&periodEnd&&xd>=periodStart&&xd<=periodEnd)return true;
+    // Prior exit for client still active at period end
+    if(periodStart&&xd<periodStart){
+      const id=g(r,'id');
+      return activeAtEnd.has(id);
+    }
+    return false;
+  }
+
+  const leavers=rows.filter(r=>{
+    if(!g(r,'exit'))return false;
+    const xd=toDate(r,'exit');if(!xd)return false;
+    if(periodStart&&periodEnd&&xd>=periodStart&&xd<periodEnd)return true;
+    if(periodStart&&xd<periodStart)return activeAtEnd.has(g(r,'id'));
+    return false;
+  });
+  const exitFreq={};
+  leavers.forEach(r=>{
+    const raw=g(r,'destCw')||g(r,'dest');
+    const d=raw||'5: Other';
+    exitFreq[d]=(exitFreq[d]||0)+1;
+  });
+  const exitData=Object.entries(exitFreq).sort((a,b)=>{
+    const na=parseInt(a[0]);const nb=parseInt(b[0]);
+    if(!isNaN(na)&&!isNaN(nb))return na-nb;
+    if(!isNaN(na))return -1;if(!isNaN(nb))return 1;
+    return a[0].localeCompare(b[0]);
+  }).slice(0,12);
+  const h=Math.max(280,exitData.length*44+80);
+
+  const allFiltered=applyActiveFilters(allRows.filter(r=>!excludedProviders.has(g(r,'provider'))));
+  const activeAtEndAll=new Set(
+    allRows.filter(r=>{
+      if(excludedProviders.has(g(r,'provider')))return false;
+      const xd=toDate(r,'exit');
+      return !xd||(periodEnd&&xd>=periodEnd);
+    }).map(r=>g(r,'id')).filter(Boolean)
+  );
+  const allLeavers=allFiltered.filter(r=>{
+    if(!g(r,'exit'))return false;
+    const xd=toDate(r,'exit');if(!xd)return false;
+    if(periodStart&&periodEnd&&xd>=periodStart&&xd<periodEnd)return true;
+    if(periodStart&&xd<periodStart)return activeAtEndAll.has(g(r,'id'));
+    return false;
+  });
+
+  // Exit destination categories — count all exit rows, not unique clients
+  const DEST_CATS=[
+    {key:'perm', label:'Permanent housing',   match:d=>d.startsWith('1:')},
+    {key:'temp', label:'Temporary housing',   match:d=>d.startsWith('2:')},
+    {key:'inst', label:'Institutional',       match:d=>d.startsWith('3:')},
+    {key:'home', label:'Homeless situations', match:d=>d.startsWith('4:')},
+    {key:'other',label:'Other',               match:d=>d.startsWith('5:')||!d},
+  ];
+
+  const destFn=r=>g(r,'destCw')||g(r,'dest');
+  const catCounts=DEST_CATS.map(cat=>({
+    ...cat,
+    vet:  allLeavers.filter(r=>isVet(r) &&cat.match(destFn(r))).length,
+    nvet: allLeavers.filter(r=>!isVet(r)&&cat.match(destFn(r))).length,
+  }));
+
+  const losList=rows.map(r=>parseFloat(g(r,'los'))).filter(v=>!isNaN(v)&&v>=0);
+  const vetLos=rows.filter(isVet).map(r=>parseFloat(g(r,'los'))).filter(v=>!isNaN(v)&&v>=0);
+  const nvetLos=rows.filter(r=>!isVet(r)).map(r=>parseFloat(g(r,'los'))).filter(v=>!isNaN(v)&&v>=0);
+  let maxLos=365;if(losList.length){let m=0;losList.forEach(v=>{if(v>m)m=v;});maxLos=Math.min(m,730);}
+  const binSize=30,bins=[];
+  for(let i=0;i<=maxLos;i+=binSize)bins.push(i);
+  function histBin(arr){return bins.map((b,i)=>arr.filter(v=>v>=b&&v<(bins[i+1]||Infinity)).length);}
+  const binLabels=bins.map((b,i)=>b+'–'+(bins[i+1]!==undefined?bins[i+1]-1:'+')+' days');
+
+  const totalExits=leavers.length;
+  const uniqueLeavers=uCount(leavers,r=>g(r,'id'));
+
+  container.innerHTML=`
+    <div class="cc full">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:.5rem">
+        <div class="mc"><div class="mc-lbl" style="display:flex;align-items:center">Total exits${tip('All exits within the period including multiple exits per client. Per HMIS methodology, prior exits are also included for clients still active at period end.')}</div><div class="mc-val">${totalExits.toLocaleString()}</div><div class="mc-sub">all enrollments</div></div>
+        <div class="mc"><div class="mc-lbl" style="display:flex;align-items:center">Unique leavers${tip('Distinct clients who had at least one exit within the reporting period. Lower than total exits when clients had multiple enrollments that ended in the period.')}</div><div class="mc-val">${uniqueLeavers.toLocaleString()}</div><div class="mc-sub">distinct people</div></div>
+      </div>
+      <div class="ct-row"><div class="ct">Exit destinations — total exits</div>${tip('Sorted by HMIS category 1–5. Category 1 (Permanent Housing) is the best outcome; category 4 (Homeless Situations) is the least favorable. "Other" includes null and indeterminate values. Click a bar to filter.')}</div>
+      <div class="cw" style="height:${h}px"><canvas id="c-exit"></canvas></div>
+    </div>
+    <div class="cc full">
+      <div class="ct-row"><div class="ct">Exit destinations by veteran status — total exits</div>${tip('Compares exit destination categories between veterans and non-veterans. Shows total exits not unique leavers, so a client with multiple exits may appear more than once.')}</div>
+      ${leg(['Veterans','Non-veterans'],['#185fa5','#1d9e75'])}
+      <div class="cw" style="height:260px"><canvas id="c-dest-vet"></canvas></div>
+    </div>
+    <div class="cc full">
+      <div class="ct-row"><div class="ct">Length of stay distribution</div>${tip('Shows how many enrollments fall into each LOS range (days between entry and exit). Includes all program types. Switch to log scale if the 0–29 day bar dominates and makes other bins hard to read.')}<span style="font-size:11px;font-weight:400;color:#888780;margin-left:6px">all program types</span></div>
+      ${leg(['All clients','Veterans','Non-veterans'],['#378add','#185fa5','#1d9e75'])}
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <div style="display:flex;gap:2px;background:#ede9e3;border-radius:6px;padding:2px" id="los-scale-toggle">
+          <button class="pbtn active" data-scale="linear" style="font-size:11px;padding:3px 10px">Linear</button>
+          <button class="pbtn" data-scale="logarithmic" style="font-size:11px;padding:3px 10px">Log</button>
+        </div>
+        <span style="font-size:11px;color:#888780">Log scale helps compare smaller bins when 0–29 days dominates</span>
+      </div>
+      <div class="cw" style="height:240px"><canvas id="c-loshist"></canvas></div>
+    </div>
+    <div class="cc full">
+      <div class="ct-row"><div class="ct">Avg length of stay — veterans vs. non-veterans</div>${tip('Compares average LOS in days between veterans and non-veterans. Based on all enrollments with an exit date within the period. Note: HMIS summary LOS figures are for emergency shelters only.')}</div>
+      ${leg(['Veterans','Non-veterans'],['#185fa5','#1d9e75'])}
+      <div class="cw" style="height:180px"><canvas id="c-losvet"></canvas></div>
+    </div>`;
+
+  setTimeout(()=>{
+    mkChart('c-exit',{type:'bar',
+      data:{labels:exitData.map(d=>d[0].length>50?d[0].slice(0,50)+'…':d[0]),datasets:[{data:exitData.map(d=>d[1]),backgroundColor:'#378add',borderRadius:3,borderSkipped:false}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{x:{grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#6b6b67'}},y:{ticks:{color:'#444441',font:{size:12}}}},
+        onClick:(evt,els)=>{if(!els.length)return;const val=exitData[els[0].index][0];setTimeout(()=>toggleDimFilter('dest',val),0);}
+      }
+    });
+    mkChart('c-dest-vet',{type:'bar',
+      data:{
+        labels:catCounts.map(c=>c.label),
+        datasets:[
+          {label:'Veterans',data:catCounts.map(c=>c.vet),backgroundColor:'#185fa5',borderRadius:3,borderSkipped:false},
+          {label:'Non-veterans',data:catCounts.map(c=>c.nvet),backgroundColor:'#1d9e75',borderRadius:3,borderSkipped:false},
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+ctx.dataset.label+': '+ctx.parsed.y}}},
+        scales:{
+          x:{grid:{display:false},ticks:{color:'#444441'}},
+          y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#6b6b67',precision:0}}
+        }
+      }
+    });
+    const losHistData={labels:binLabels,datasets:[
+      {label:'All',data:histBin(losList),backgroundColor:'rgba(55,138,221,0.3)',borderColor:'#378add',borderWidth:1},
+      {label:'Veterans',data:histBin(vetLos),backgroundColor:'rgba(24,95,165,0.4)',borderColor:'#185fa5',borderWidth:1},
+      {label:'Non-veterans',data:histBin(nvetLos),backgroundColor:'rgba(29,158,117,0.3)',borderColor:'#1d9e75',borderWidth:1},
+    ]};
+    function makeLosChart(scaleType){
+      const existing=charts.find(c=>c.canvas&&c.canvas.id==='c-loshist');
+      if(existing){existing.destroy();charts=charts.filter(c=>c!==existing);}
+      mkChart('c-loshist',{type:'bar',data:losHistData,
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+          scales:{
+            x:{ticks:{color:'#6b6b67',maxRotation:45,autoSkip:false},grid:{display:false}},
+            y:{type:scaleType,grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#6b6b67',precision:0,maxTicksLimit:scaleType==='logarithmic'?6:undefined},
+              ...(scaleType==='logarithmic'?{min:1}:{})
+            }
+          }
+        }
+      });
+    }
+    makeLosChart('linear');
+    document.getElementById('los-scale-toggle').addEventListener('click',e=>{
+      const btn=e.target.closest('.pbtn');if(!btn)return;
+      document.querySelectorAll('#los-scale-toggle .pbtn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      makeLosChart(btn.dataset.scale);
+    });
+    const va=vetLos.length?Math.round(vetLos.reduce((a,b)=>a+b,0)/vetLos.length):0;
+    const nva=nvetLos.length?Math.round(nvetLos.reduce((a,b)=>a+b,0)/nvetLos.length):0;
+    mkChart('c-losvet',{type:'bar',
+      data:{labels:['Veterans','Non-veterans'],datasets:[{data:[va,nva],backgroundColor:['#185fa5','#1d9e75'],borderRadius:4,borderSkipped:false}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+ctx.parsed.y+' days avg'}}},
+        scales:{x:{grid:{display:false},ticks:{color:'#444441'}},y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#6b6b67',precision:0}}}
+      }
+    });
+  },0);
+}
+
+/* ── trends ── */
+function buildTrends(){
+  const container=document.getElementById('trends');container.innerHTML='';
+  const qKeys=Object.keys(FY_QUARTERS).sort();
+  if(qKeys.length<2){
+    container.innerHTML='<div class="cc full"><div style="font-size:13px;color:#6b6b67;padding:.5rem 0">At least two quarters of data are needed for trend charts.</div></div>';return;
+  }
+  const qLabels=qKeys.map(k=>k.toUpperCase());
+  function activeInQ(r,qs,qe){const ed=toDate(r,'entry');if(!ed||ed>qe)return false;const xd=toDate(r,'exit');return!xd||xd>=qs;}
+  function newlyInQ(r,qs,qe){if(!flag(r,'ns'))return false;const ed=toDate(r,'entry');return ed&&inRange(ed,qs,qe);}
+  function placedInQ(r,qs,qe){const xd=toDate(r,'exit');if(!xd||!inRange(xd,qs,qe))return false;const d=g(r,'destCw')||g(r,'dest');return d.startsWith('1:')||d.startsWith('2:');}
+  const base=applyActiveFilters(allRows.filter(r=>!excludedProviders.has(g(r,'provider'))));
+  const servedByQ=qKeys.map(k=>{const[qs,qe]=FY_QUARTERS[k];return uCount(base.filter(r=>activeInQ(r,qs,qe)),r=>g(r,'id'));});
+  const newlyByQ=qKeys.map(k=>{const[qs,qe]=FY_QUARTERS[k];return uCount(base.filter(r=>newlyInQ(r,qs,qe)),r=>g(r,'id'));});
+  const placedByQ=qKeys.map(k=>{const[qs,qe]=FY_QUARTERS[k];return uCount(base.filter(r=>placedInQ(r,qs,qe)),r=>g(r,'id'));});
+  const vetsByQ=qKeys.map(k=>{const[qs,qe]=FY_QUARTERS[k];return uCount(base.filter(r=>isVet(r)&&activeInQ(r,qs,qe)),r=>g(r,'id'));});
+  const losByQ=qKeys.map(k=>{
+    const[qs,qe]=FY_QUARTERS[k];
+    // Only count LOS for clients whose exit date falls within this quarter
+    const vals=base.filter(r=>{
+      const xd=toDate(r,'exit');
+      return xd&&inRange(xd,qs,qe);
+    }).map(r=>parseFloat(g(r,'los'))).filter(v=>!isNaN(v)&&v>=0);
+    return vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):0;
+  });
+  container.innerHTML=`
+    <div class="cc full">
+      <div class="ct-row"><div class="ct">People served by quarter</div>${tip('Total served = unique clients active at any point during the quarter (entered before quarter end, not yet exited or exited after quarter start). Newly served = entry date within the quarter. Placed = exit to permanent or temporary housing within the quarter.')}</div>
+      ${leg(['Total served','Newly served','Placed'],['#378add','#1d9e75','#d85a30'])}
+      <div class="cw" style="height:260px"><canvas id="c-qtrend"></canvas></div>
+    </div>
+    <div class="cc">
+      <div class="ct-row"><div class="ct">Veterans served by quarter</div>${tip('Unique veterans (per Veteran Status Crosswalk) who were actively enrolled at any point during each fiscal quarter.')}</div>
+      <div class="cw" style="height:220px"><canvas id="c-qvet"></canvas></div>
+    </div>
+    <div class="cc">
+      <div class="ct-row"><div class="ct">Avg length of stay by quarter</div>${tip('Average LOS in days for enrollments whose exit date falls within each quarter. Only completed stays (with an exit) are included. Note: HMIS summary LOS figures are for emergency shelters only.')}</div>
+      <div class="cw" style="height:220px"><canvas id="c-qlos"></canvas></div>
+    </div>`;
+  const lineOpts=datasets=>({type:'line',data:{labels:qLabels,datasets},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{color:'#444441'}},y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#6b6b67',precision:0}}},
+      elements:{line:{tension:.3},point:{radius:4,hoverRadius:6}}
+    }
+  });
+  setTimeout(()=>{
+    mkChart('c-qtrend',{type:'bar',data:{labels:qLabels,datasets:[
+      {label:'Total served',data:servedByQ,backgroundColor:'#378add',borderRadius:3},
+      {label:'Newly served',data:newlyByQ,backgroundColor:'#1d9e75',borderRadius:3},
+      {label:'Placed',data:placedByQ,backgroundColor:'#d85a30',borderRadius:3},
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false},ticks:{color:'#444441'}},y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{color:'#6b6b67',precision:0}}}
+    }});
+    mkChart('c-qvet',lineOpts([{label:'Veterans',data:vetsByQ,borderColor:'#185fa5',backgroundColor:'rgba(24,95,165,.12)',fill:true,pointBackgroundColor:'#185fa5'}]));
+    mkChart('c-qlos',lineOpts([{label:'Avg LOS',data:losByQ,borderColor:'#7f77dd',backgroundColor:'rgba(127,119,221,.12)',fill:true,pointBackgroundColor:'#7f77dd'}]));
+  },0);
+}
+
+/* ── data quality ── */
+function buildDQ(rows){
+  const clients=uBy(rows,r=>g(r,'id'));const n=clients.length;
+  const checks=[
+    {f:'Entry date',k:'entry'},{f:'Exit date',k:'exit'},{f:'Exit destination',k:'dest'},
+    {f:'Age at entry',k:'age'},{f:'Gender',k:'gender'},{f:'Race & ethnicity',k:'race'},
+    {f:'Veteran status',k:'vet'},{f:'Disabling condition',k:'dis'},{f:'HMIS provider',k:'provider'},
+  ];
+  const bad=new Set(['','unknown','data not collected','client doesn\'t know','client refused','client prefers not to answer']);
+  const res=checks.map(c=>{const miss=clients.filter(r=>bad.has(g(r,c.k).toLowerCase())).length;return{...c,miss,rate:Math.round(miss/n*100)};});
+  document.getElementById('dq').innerHTML=`
+    <div class="ct-row"><div class="ct">Data completeness — unique clients (${n.toLocaleString()})</div>${tip('Shows what percentage of unique clients have a value recorded for each key field. "Missing/unknown" includes blank, Unknown, Data not collected, Client doesn\'t know, Client refused, and Client prefers not to answer. Poor completeness may affect the accuracy of dashboard metrics.')}</div>
+    <table class="tbl"><thead><tr><th>Field</th><th>Missing/unknown</th><th style="width:150px">Completeness</th><th>Status</th></tr></thead>
+    <tbody>${res.map(r=>{const c=100-r.rate,cls=c>=90?'ok':c>=70?'warn':'bad',bc=c>=90?'':c>=70?'w':'b';
+      return`<tr><td>${r.f}</td><td>${r.miss.toLocaleString()} <span style="color:#888780">(${r.rate}%)</span></td>
+        <td><div style="display:flex;align-items:center;gap:8px"><div class="bbg" style="flex:1"><div class="bf ${bc}" style="width:${c}%"></div></div>
+        <span style="font-size:12px;color:#444441;min-width:28px;text-align:right">${c}%</span></div></td>
+        <td><span class="pill ${cls}">${c>=90?'Good':c>=70?'Fair':'Poor'}</span></td></tr>`;}).join('')}
+    </tbody></table>`;
+}
+
+/* ── validation ── */
+const HEADER_GROUPS=[
+  {label:'Core identity',keys:['id'],affects:'Everything — required',critical:true},
+  {label:'Enrollment dates',keys:['entry','exit'],affects:'Quarterly filters, leavers, LOS'},
+  {label:'Provider',keys:['provider'],affects:'Provider breakdown'},
+  {label:'Served & placed flags',keys:['ns','nsq','placed'],affects:'Newly served, placement metrics'},
+  {label:'Exit destination',keys:['dest','destCw'],affects:'Exit charts, permanent housing'},
+  {label:'Length of stay',keys:['los'],affects:'LOS metrics and charts'},
+  {label:'Age',keys:['age','ageBk'],affects:'Age chart, avg age'},
+  {label:'Gender',keys:['gender'],affects:'Gender chart'},
+  {label:'Race & ethnicity',keys:['race'],affects:'Race chart, cross-tabs'},
+  {label:'Veteran status',keys:['vet','vetCw'],affects:'Veterans metric, segmentation'},
+  {label:'Disabling condition',keys:['dis','disCw'],affects:'Disability chart'},
+];
+function validateHeaders(rows){
+  if(!rows.length)return{ok:false,missing:[],unexpected:[]};
+  const fh=new Set(Object.keys(rows[0])),missing=[],unexpected=[...fh].filter(h=>!new Set(Object.values(COL)).has(h));
+  HEADER_GROUPS.forEach(grp=>{
+    const mk=grp.keys.filter(k=>!fh.has(COL[k]));
+    if(mk.length)missing.push({label:grp.label,cols:mk.map(k=>COL[k]),affects:grp.affects,critical:grp.critical||false});
+  });
+  return{ok:!missing.some(m=>m.critical),missing,unexpected};
+}
+function showValidationWarning(result,onContinue){
+  if(!result.missing.length){onContinue();return;}
+  const hc=result.missing.some(m=>m.critical);
+  document.getElementById('uerr').innerHTML=`
+    <div style="background:#fff;border-radius:12px;border:0.5px solid rgba(0,0,0,.1);padding:1.5rem;margin-top:1rem">
+      <div style="font-size:15px;font-weight:500;margin-bottom:.5rem">${hc?'Cannot load file':'Some columns not found'}</div>
+      <div style="font-size:13px;color:#6b6b67;margin-bottom:1.25rem">${hc?'A required column is missing.':'Affected sections will show zeros or be hidden.'}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:1.25rem">
+        <thead><tr>
+          <th style="text-align:left;padding:0 8px 6px 0;color:#6b6b67;font-size:11px;text-transform:uppercase;border-bottom:0.5px solid rgba(0,0,0,.1)">Section</th>
+          <th style="text-align:left;padding:0 8px 6px 0;color:#6b6b67;font-size:11px;text-transform:uppercase;border-bottom:0.5px solid rgba(0,0,0,.1)">Missing</th>
+          <th style="text-align:left;padding:0 0 6px 0;color:#6b6b67;font-size:11px;text-transform:uppercase;border-bottom:0.5px solid rgba(0,0,0,.1)">Impact</th>
+        </tr></thead>
+        <tbody>${result.missing.map(m=>`<tr>
+          <td style="padding:5px 8px 5px 0;border-bottom:0.5px solid rgba(0,0,0,.06);font-weight:500;color:${m.critical?'#a32d2d':'#1a1a18'}">${m.label}</td>
+          <td style="padding:5px 8px 5px 0;border-bottom:0.5px solid rgba(0,0,0,.06);font-family:monospace;font-size:11px">${m.cols.join('<br>')}</td>
+          <td style="padding:5px 0;border-bottom:0.5px solid rgba(0,0,0,.06);color:#6b6b67">${m.affects}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+      ${result.unexpected.length?`<div style="font-size:12px;color:#6b6b67;margin-bottom:1rem"><b>Unrecognized columns (${result.unexpected.length}):</b> ${result.unexpected.slice(0,8).join(', ')}${result.unexpected.length>8?'…':''}</div>`:''}
+      <div style="display:flex;gap:8px">
+        ${!hc?`<button id="btn-cont" style="padding:6px 16px;background:#185fa5;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer">Load anyway</button>`:''}
+        <button id="btn-canc" style="padding:6px 16px;background:none;border:0.5px solid rgba(0,0,0,.2);border-radius:8px;font-size:13px;cursor:pointer">Cancel</button>
+      </div>
+    </div>`;
+  if(!hc)document.getElementById('btn-cont').addEventListener('click',()=>{document.getElementById('uerr').innerHTML='';onContinue();});
+  document.getElementById('btn-canc').addEventListener('click',()=>{document.getElementById('uerr').innerHTML='';document.getElementById('fi').value='';});
+}
+
+/* ── provider setup step ── */
+function showProviderSetup(rows, onContinue){
+  const providers=[...new Set(rows.map(r=>g(r,'provider')).filter(Boolean))].sort();
+  const defaultExcluded=new Set(DEFAULT_EXCLUDED.filter(p=>providers.includes(p)));
+
+  const html=`
+    <div style="background:#fff;border-radius:12px;border:0.5px solid rgba(0,0,0,.1);padding:1.5rem;margin-top:1rem;max-width:600px">
+      <div style="font-size:15px;font-weight:500;margin-bottom:.35rem">Configure providers</div>
+      <div style="font-size:13px;color:#6b6b67;margin-bottom:1.25rem">
+        Check the providers to <b>include</b> in the dashboard. Some programs are unchecked by default — you can adjust this here or any time using Manage providers in the dashboard header.
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:.75rem">
+        <button id="psetup-all" style="font-size:12px;color:#185fa5;background:none;border:none;cursor:pointer;padding:0">Select all</button>
+        <span style="color:#d3d1c7">|</span>
+        <button id="psetup-none" style="font-size:12px;color:#185fa5;background:none;border:none;cursor:pointer;padding:0">Select none</button>
+      </div>
+      <div id="psetup-list" style="max-height:320px;overflow-y:auto;border:0.5px solid rgba(0,0,0,.1);border-radius:8px;padding:.5rem .75rem;margin-bottom:1.25rem">
+        ${providers.map(p=>{
+          const checked=!defaultExcluded.has(p)?'checked':'';
+          return`<label style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid rgba(0,0,0,.05);cursor:pointer;font-size:13px">
+            <input type="checkbox" class="psetup-cb" data-p="${p.replace(/"/g,'&quot;')}" ${checked} style="accent-color:#185fa5;width:13px;height:13px;flex-shrink:0">
+            <span>${p}</span>
+          </label>`;
+        }).join('')}
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="psetup-go" style="padding:7px 18px;background:#185fa5;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer">Load dashboard</button>
+        <button id="psetup-cancel" style="padding:7px 16px;background:none;border:0.5px solid rgba(0,0,0,.2);border-radius:8px;font-size:13px;cursor:pointer">Cancel</button>
+        <span style="font-size:12px;color:#888780;margin-left:4px" id="psetup-count">${providers.length - defaultExcluded.size} of ${providers.length} selected</span>
+      </div>
+    </div>`;
+
+  document.getElementById('uerr').innerHTML=html;
+
+  function updateCount(){
+    const checked=document.querySelectorAll('.psetup-cb:checked').length;
+    document.getElementById('psetup-count').textContent=checked+' of '+providers.length+' selected';
+  }
+  document.querySelectorAll('.psetup-cb').forEach(cb=>cb.addEventListener('change',updateCount));
+  document.getElementById('psetup-all').addEventListener('click',()=>{document.querySelectorAll('.psetup-cb').forEach(cb=>cb.checked=true);updateCount();});
+  document.getElementById('psetup-none').addEventListener('click',()=>{document.querySelectorAll('.psetup-cb').forEach(cb=>cb.checked=false);updateCount();});
+  document.getElementById('psetup-cancel').addEventListener('click',()=>{document.getElementById('uerr').innerHTML='';document.getElementById('fi').value='';});
+  document.getElementById('psetup-go').addEventListener('click',()=>{
+    excludedProviders=new Set();
+    providers.forEach(p=>{
+      const cb=document.querySelector(`.psetup-cb[data-p="${p.replace(/"/g,'&quot;')}"]`);
+      if(cb&&!cb.checked)excludedProviders.add(p);
+    });
+    document.getElementById('uerr').innerHTML='';
+    onContinue();
+  });
+}
+
+/* ── manage providers (mid-session) ── */
+function showManageProviders(){
+  const providers=[...new Set(allRows.map(r=>g(r,'provider')).filter(Boolean))].sort((a,b)=>{
+    const sk=n=>n.replace(/^Do Good Multnomah:?\s*/i,'').toLowerCase();
+    return sk(a).localeCompare(sk(b));
+  });
+  const overlay=document.createElement('div');
+  overlay.id='mpanel-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding-top:6vh';
+  overlay.innerHTML=`
+    <div style="background:#fff;border-radius:14px;width:90%;max-width:560px;max-height:85vh;overflow-y:auto;padding:1.5rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.35rem">
+        <div style="font-size:15px;font-weight:500">Manage providers</div>
+        <button id="mpanel-close" style="background:none;border:none;font-size:20px;cursor:pointer;color:#6b6b67;line-height:1;padding:0 2px">&#x2715;</button>
+      </div>
+      <div style="font-size:13px;color:#6b6b67;margin-bottom:1.1rem">Check providers to <b>include</b> in the dashboard. Changes apply immediately.</div>
+      <div style="display:flex;gap:8px;margin-bottom:.75rem">
+        <button id="mpanel-all" style="font-size:12px;color:#185fa5;background:none;border:none;cursor:pointer;padding:0">Select all</button>
+        <span style="color:#d3d1c7">|</span>
+        <button id="mpanel-none" style="font-size:12px;color:#185fa5;background:none;border:none;cursor:pointer;padding:0">Select none</button>
+      </div>
+      <div style="border:0.5px solid rgba(0,0,0,.1);border-radius:8px;padding:.5rem .75rem;margin-bottom:1.25rem">
+        ${providers.map(p=>{
+          const checked=!excludedProviders.has(p)?'checked':'';
+          return`<label style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid rgba(0,0,0,.05);cursor:pointer;font-size:13px">
+            <input type="checkbox" class="mpanel-cb" data-p="${p.replace(/"/g,'&quot;')}" ${checked} style="accent-color:#185fa5;width:13px;height:13px;flex-shrink:0">
+            <span>${p}</span>
+          </label>`;
+        }).join('')}
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="mpanel-apply" style="padding:7px 18px;background:#185fa5;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer">Apply</button>
+        <button id="mpanel-cancel" style="padding:7px 16px;background:none;border:0.5px solid rgba(0,0,0,.2);border-radius:8px;font-size:13px;cursor:pointer">Cancel</button>
+        <span id="mpanel-count" style="font-size:12px;color:#888780;margin-left:4px">${providers.length-excludedProviders.size} of ${providers.length} included</span>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  function updateCount(){
+    const n=overlay.querySelectorAll('.mpanel-cb:checked').length;
+    document.getElementById('mpanel-count').textContent=n+' of '+providers.length+' included';
+  }
+  overlay.querySelectorAll('.mpanel-cb').forEach(cb=>cb.addEventListener('change',updateCount));
+  document.getElementById('mpanel-all').addEventListener('click',()=>{overlay.querySelectorAll('.mpanel-cb').forEach(cb=>cb.checked=true);updateCount();});
+  document.getElementById('mpanel-none').addEventListener('click',()=>{overlay.querySelectorAll('.mpanel-cb').forEach(cb=>cb.checked=false);updateCount();});
+  document.getElementById('mpanel-close').addEventListener('click',()=>overlay.remove());
+  document.getElementById('mpanel-cancel').addEventListener('click',()=>overlay.remove());
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+  document.getElementById('mpanel-apply').addEventListener('click',()=>{
+    excludedProviders=new Set();
+    providers.forEach(p=>{
+      const cb=overlay.querySelector(`.mpanel-cb[data-p="${p.replace(/"/g,'&quot;')}"]`);
+      if(cb&&!cb.checked)excludedProviders.add(p);
+    });
+    overlay.remove();
+    buildFilterPanel();
+    updateFilterUI();
+    render();
+  });
+}
+function loadSheet(wb, sheetName, fileName){
+  // First scan other sheets for the report end date
+  window._reportEndDate=null;
+  wb.SheetNames.forEach(sn=>{
+    if(sn===sheetName)return;
+    try{
+      const raw=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:''});
+      for(let ri=0;ri<Math.min(raw.length,10);ri++){
+        const row=raw[ri];
+        for(let ci=0;ci<row.length-1;ci++){
+          const cell=String(row[ci]||'').toLowerCase().trim();
+          if(cell==='end date'||cell==='end date:'){
+            const dateVal=row[ci+1];
+            if(dateVal){
+              const parsed=typeof dateVal==='number'
+                ?normDate(new Date(Math.round((dateVal-25569)*86400*1000)))
+                :normDate(new Date(String(dateVal)));
+              if(!isNaN(parsed.getTime())){window._reportEndDate=parsed;return;}
+            }
+          }
+        }
+      }
+    }catch(e){}
+  });
+
+  const ws=wb.Sheets[sheetName];
+
+  // Try parsing normally first
+  let rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+  if(!rows.length){document.getElementById('uerr').innerHTML='<div class="err">That sheet appears empty. Please pick a different sheet.</div>';return;}
+
+  // Check if headers are on row 2 — detect by seeing if row 1 contains none of our expected columns
+  // but row 2 does. We do this by checking if the first row's keys match any known column names.
+  const expectedCols=new Set(Object.values(COL));
+  const firstRowKeys=Object.keys(rows[0]);
+  const firstRowHasHeaders=firstRowKeys.some(k=>expectedCols.has(k));
+
+  if(!firstRowHasHeaders){
+    // Try parsing with header row offset — use raw array and treat row 2 as headers
+    const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    if(raw.length>1){
+      const headers=raw[1];
+      const dataRows=raw.slice(2);
+      rows=dataRows.map(row=>{
+        const obj={};
+        headers.forEach((h,i)=>{if(h)obj[h]=row[i]??'';});
+        return obj;
+      });
+    }
+  }
+
+  if(!rows.length){document.getElementById('uerr').innerHTML='<div class="err">That sheet appears empty after skipping header row.</div>';return;}
+  const validation=validateHeaders(rows);
+  showValidationWarning(validation,()=>{
+    showProviderSetup(rows,()=>{
+      allRows=rows;activeFilters={};pendingFilters={};period='fy';activeTab='overview';newlyServedOnly=false;
+      FY_QUARTERS={};FY_START=null;FY_END=null;customStart=null;customEnd=null;
+      const nsBtn=document.getElementById('ns-toggle');
+      nsBtn.style.background='#fff';nsBtn.style.borderColor='rgba(0,0,0,.15)';nsBtn.style.color='#444441';nsBtn.style.fontWeight='';
+      buildFiscalPeriods(rows);
+      buildFilterPanel();
+      document.getElementById('uwrap').style.display='none';
+      document.getElementById('dash').style.display='block';
+      document.getElementById('btn-manage-providers').style.display='inline';
+      document.getElementById('fname-row').textContent=fileName+' / '+sheetName+' — '+rows.length.toLocaleString()+' rows';
+      document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab==='overview'));
+      document.querySelectorAll('.tabpane').forEach(p=>p.classList.toggle('active',p.id==='tab-overview'));
+      updateFilterUI();render();
+    });
+  });
+}
+
+function showSheetPicker(wb, fileName){
+  const sheets=wb.SheetNames;
+  document.getElementById('uerr').innerHTML=`
+    <div style="background:#fff;border-radius:12px;border:0.5px solid rgba(0,0,0,.1);padding:1.5rem;margin-top:1rem;max-width:540px">
+      <div style="font-size:15px;font-weight:500;margin-bottom:.35rem">Multiple sheets found</div>
+      <div style="font-size:13px;color:#6b6b67;margin-bottom:1.1rem">This file has ${sheets.length} sheets. Pick the one that contains the client data.</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:1.25rem">
+        ${sheets.map((s,i)=>`
+          <button class="sheet-btn" data-si="${i}" style="text-align:left;padding:9px 14px;border:0.5px solid rgba(0,0,0,.12);border-radius:8px;background:#fff;cursor:pointer;font-size:13px;transition:border-color .1s">
+            <span style="font-weight:500">${s}</span>
+            <span style="font-size:11px;color:#888780;margin-left:8px">${XLSX.utils.sheet_to_json(wb.Sheets[s],{defval:''}).length.toLocaleString()} rows</span>
+          </button>`).join('')}
+      </div>
+      <button id="sheet-cancel" style="padding:6px 16px;background:none;border:0.5px solid rgba(0,0,0,.2);border-radius:8px;font-size:13px;cursor:pointer">Cancel</button>
+    </div>`;
+  document.querySelectorAll('.sheet-btn').forEach(btn=>{
+    btn.addEventListener('mouseenter',()=>btn.style.borderColor='rgba(0,0,0,.3)');
+    btn.addEventListener('mouseleave',()=>btn.style.borderColor='rgba(0,0,0,.12)');
+    btn.addEventListener('click',()=>{
+      document.getElementById('uerr').innerHTML='';
+      loadSheet(wb,sheets[+btn.dataset.si],fileName);
+    });
+  });
+  document.getElementById('sheet-cancel').addEventListener('click',()=>{
+    document.getElementById('uerr').innerHTML='';document.getElementById('fi').value='';
+  });
+}
+
+function processFile(file){
+  if(!file)return;
+  if(!['xlsx','xls'].includes(file.name.split('.').pop().toLowerCase())){
+    document.getElementById('uerr').innerHTML='<div class="err">Please upload a .xlsx or .xls file.</div>';return;
+  }
+  document.getElementById('uerr').innerHTML='<div style="padding:.75rem;font-size:13px;color:#6b6b67">Parsing file...</div>';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+      if(wb.SheetNames.length>1){
+        showSheetPicker(wb,file.name);
+      } else {
+        loadSheet(wb,wb.SheetNames[0],file.name);
+      }
+    }catch(err){
+      document.getElementById('uerr').innerHTML=`<div class="err">Error: ${err.message}</div>`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function resetDashboard(){
+  destroyCharts();allRows=[];activeFilters={};pendingFilters={};period='fy';activeTab='overview';
+  FY_QUARTERS={};FY_START=null;FY_END=null;customStart=null;customEnd=null;excludedProviders=new Set();
+  document.getElementById('dash').style.display='none';
+  document.getElementById('uwrap').style.display='block';
+  document.getElementById('btn-manage-providers').style.display='none';
+  document.getElementById('uerr').innerHTML='';
+  document.getElementById('fi').value='';
+  document.getElementById('ftag-row').classList.remove('on');
+  document.getElementById('ptoggle').innerHTML='';
+  document.getElementById('dr-row').classList.remove('on');
+  document.getElementById('fpanel').classList.remove('open');
+  document.getElementById('filter-btn').classList.remove('has-filters');
+  document.getElementById('filter-badge').style.display='none';
+}
+
+/* ── event listeners ── */
+document.getElementById('fi').addEventListener('change',e=>processFile(e.target.files[0]));
+document.getElementById('btn-reset').addEventListener('click',resetDashboard);
+document.getElementById('btn-manage-providers').addEventListener('click',showManageProviders);
+document.getElementById('ptoggle').addEventListener('click',e=>{
+  const btn=e.target.closest('.pbtn');if(!btn)return;
+  const p=btn.dataset.period;
+  document.querySelectorAll('#ptoggle .pbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(p==='custom'){document.getElementById('dr-row').classList.add('on');return;}
+  document.getElementById('dr-row').classList.remove('on');
+  period=p;render();
+});
+document.getElementById('dr-apply').addEventListener('click',()=>{
+  const s=document.getElementById('dr-start').value,e=document.getElementById('dr-end').value;
+  if(!s||!e)return;
+  customStart=new Date(s+'T00:00:00.000Z');customEnd=new Date(e+'T23:59:59.999Z');
+  period='custom';render();
+});
+document.getElementById('dr-cancel').addEventListener('click',()=>{
+  document.getElementById('dr-row').classList.remove('on');
+  period='fy';document.querySelectorAll('#ptoggle .pbtn').forEach((b,i)=>b.classList.toggle('active',i===0));render();
+});
+document.getElementById('tabbar').addEventListener('click',e=>{
+  const btn=e.target.closest('.tab');if(!btn)return;
+  activeTab=btn.dataset.tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t===btn));
+  document.querySelectorAll('.tabpane').forEach(p=>p.classList.toggle('active',p.id==='tab-'+activeTab));
+  render();
+});
+
+// filter panel open/close
+document.getElementById('filter-btn').addEventListener('click',e=>{
+  e.stopPropagation();
+  const panel=document.getElementById('fpanel');
+  const opening=!panel.classList.contains('open');
+  panel.classList.toggle('open');
+  if(opening){
+    pendingFilters={};
+    Object.entries(activeFilters).forEach(([k,v])=>{pendingFilters[k]=new Set(v);});
+    buildFilterPanel();
+  }
+});
+document.getElementById('fpanel-close').addEventListener('click',()=>document.getElementById('fpanel').classList.remove('open'));
+document.getElementById('fpanel-clear').addEventListener('click',()=>{clearAllFilters();document.getElementById('fpanel').classList.remove('open');});
+document.getElementById('fpanel-apply').addEventListener('click',()=>{
+  readPendingFromPanel();
+  applyPendingFilters();
+  document.getElementById('fpanel').classList.remove('open');
+});
+document.addEventListener('click',e=>{
+  const wrap=document.getElementById('fpanel-wrap');
+  if(!wrap.contains(e.target))document.getElementById('fpanel').classList.remove('open');
+});
+
+const dz=document.getElementById('dz');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');processFile(e.dataTransfer.files[0]);});
+document.getElementById('btn-browse').addEventListener('click',()=>document.getElementById('fi').click());
+</script>
+</body>
+</html>
