@@ -256,5 +256,3 @@ Disclaimer
 This dashboard is designed to improve accessibility and analysis of HMIS PPR data. All metrics are calculated from the uploaded report and should be reviewed alongside official HMIS reporting standards and guidance when used for compliance or grant reporting.
 
 Built to make HMIS data easier to understand, analyze, and act on. 📊🏠📈
-
-I would actually recommend naming the repo something like HMIS-PPR-Analytics, HMIS-Dashboard, or PPR-Explorer and adding screenshots/GIFs right below the introduction. Given the amount of UI you've built (filters, tabs, provider management, charts, data quality scoring), screenshots will dramatically increase the usefulness of the GitHub page.
