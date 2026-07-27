@@ -6,6 +6,8 @@ All processing occurs locally in the browser, allowing organizations to analyze 
 
 Instead of digging through thousands of rows in Excel, users can upload a PPR export and immediately explore trends, demographics, housing outcomes, provider performance, and data quality metrics through interactive charts and filters.
 
+https://gantb-dgm.github.io/HMIS_analytics/
+
 ---
 
 ## Overview
