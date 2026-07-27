@@ -282,3 +282,20 @@ Column validation occurs automatically during upload.
 ## Installation
 
 No installation
+
+---
+
+## Privacy Considerations
+
+This project was intentionally designed without sample datasets or screenshots.
+
+Because the dashboard is used to analyze HMIS Program Performance Reports (PPRs), example outputs may contain sensitive client, demographic, housing, or program information.
+
+To protect client privacy and maintain compliance with organizational data handling practices:
+
+- No sample HMIS datasets are included
+- No screenshots of production data are included
+- No client information is stored by the application
+- All processing occurs locally within the user's browser
+
+Users should only load reports that they are authorized to access and analyze.
