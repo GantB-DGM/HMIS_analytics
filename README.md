@@ -1,258 +1,284 @@
-HMIS Analytics Dashboard
+# HMIS Analytics Dashboard
 
-A lightweight, client-side analytics dashboard for transforming raw HMIS Program Performance Report (PPR) exports into an interactive, user-friendly reporting experience.
+A lightweight, client-side analytics dashboard that transforms raw HMIS Program Performance Report (PPR) exports into an interactive and user-friendly reporting experience.
 
 Instead of digging through thousands of rows in Excel, this dashboard allows users to upload an HMIS PPR export and immediately explore trends, demographics, housing outcomes, provider performance, and data quality metrics through interactive charts and filters.
 
-Why This Exists
+---
 
-HMIS reports contain a large amount of valuable information, but the default Excel output can be difficult for program managers, directors, and frontline supervisors to interpret.
+## Overview
 
-This tool was created to:
+HMIS reports contain a large amount of valuable information, but the standard Excel output can be difficult for program managers, directors, supervisors, and analysts to interpret.
 
-Make HMIS data easier to understand
-Reduce time spent filtering spreadsheets
-Provide visual dashboards for decision making
-Identify trends across programs and populations
-Surface data quality issues before reporting deadlines
-Allow non-technical staff to analyze PPR data without Excel expertise
-Features
-Interactive Data Upload
-Drag-and-drop Excel upload
-Supports .xlsx and .xls
-Multi-sheet workbook detection
-Automatic sheet selection
-Client-side processing (no data leaves your computer)
-Fiscal Year Analysis
+This project was created to:
+
+- Make HMIS data easier to understand
+- Reduce time spent filtering and analyzing spreadsheets
+- Provide visual dashboards for decision making
+- Identify trends across programs and populations
+- Surface data quality issues before reporting deadlines
+- Allow non-technical staff to explore HMIS reporting data
+
+The dashboard runs entirely in the browser and requires no backend infrastructure.
+
+---
+
+## Features
+
+### Excel File Upload
+
+- Drag-and-drop upload interface
+- Supports `.xlsx` and `.xls` files
+- Automatic workbook parsing
+- Multi-sheet workbook support
+- Sheet selection when multiple worksheets exist
+- Client-side processing only
+
+### Fiscal Year Analysis
 
 Automatically detects:
 
-Fiscal year boundaries
-Fiscal quarters
-Reporting period date ranges
+- Fiscal year boundaries
+- Fiscal quarters
+- Reporting periods
 
-Provides:
+Users can analyze data by:
 
-Full Fiscal Year view
-Quarter-by-quarter analysis
-Custom date range filtering
-Dashboard Overview
+- Total Fiscal Year
+- Fiscal Quarter (Q1-Q4)
+- Custom Date Range
 
-Quickly see:
-
-Unique clients served
-Newly served clients
-Veteran counts
-Unique leavers
-Positive housing placements
-Permanent housing exits
-Average length of stay
-Average age at entry
-Active providers
-Advanced Filtering
+### Interactive Filters
 
 Filter data by:
 
-Provider
-Veteran status
-Gender
-Race & ethnicity
-Age group
-Disabling condition
-Exit destination
-Housing placement status
+- Provider
+- Veteran Status
+- Gender
+- Race & Ethnicity
+- Age Group
+- Disabling Condition
+- Exit Destination
+- Housing Placement Status
 
 Features include:
 
-Multi-select filtering
-Active filter badges
-Filter tags
-One-click filter removal
-Cross-dashboard filtering
-Provider Analysis
+- Multi-select filters
+- Active filter badges
+- Quick removal of individual filters
+- One-click clear all
+- Click-to-filter charts and tables
+
+---
+
+## Dashboard Sections
+
+### Overview
+
+Provides high-level metrics including:
+
+- Unique Clients Served
+- Newly Served Clients
+- Unique Veterans
+- Unique Leavers
+- Positive Placements
+- Permanent Housing Exits
+- Average Length of Stay
+- Average Age at Entry
+- Active Providers
+
+### Provider Breakdown
 
 Compare providers across:
 
-Total clients served
-Quarterly activity
-Newly served clients
-Housing placements
-Permanent housing outcomes
-Placement rates
-Average length of stay
+- Total clients served
+- Quarterly enrollment activity
+- Newly served clients
+- Housing placements
+- Permanent housing exits
+- Placement rates
+- Average length of stay
 
-Click any provider row to immediately filter the dashboard.
+Clicking a provider automatically filters the dashboard.
 
-Demographics Dashboard
+### Demographics
 
-Interactive visualizations for:
+Interactive charts for:
 
-Gender
+#### Gender
 
-Horizontal bar charts showing:
+Displays:
 
-Client counts
-Percentages
-Distribution across gender identities
-Race & Ethnicity
+- Client counts
+- Percentages
+- Distribution across gender identities
 
-Doughnut charts showing:
+#### Age Groups
 
-Population composition
-Relative representation
-Veteran Status
+Breaks clients into HMIS reporting age ranges.
 
-Breakdowns of:
+#### Race & Ethnicity
 
-Veteran populations
-Non-veteran populations
-Disability Status
+Visualizes population composition across race and ethnicity categories.
 
-Analysis of:
+#### Veteran Status
 
-Disabling conditions
-Missing or unknown responses
-Age Groups
+Analyzes veteran and non-veteran populations.
 
-Age band analysis using HMIS age classifications.
+#### Disabling Condition
 
-Housing Outcomes Dashboard
+Displays disabling condition classifications and reporting completeness.
 
-Analyze:
+### Housing Outcomes
 
-Exit destinations
-Permanent housing placements
-Temporary housing placements
-Institutional exits
-Homeless exits
-Other outcomes
+Tracks:
 
-Additional insights include:
+- Exit destinations
+- Permanent housing outcomes
+- Temporary housing outcomes
+- Institutional exits
+- Homeless exits
+- Other outcomes
 
-Veteran vs. non-veteran outcomes
-Length of stay distributions
-Average length of stay comparisons
-Exit destination breakdowns
-Quarterly Trend Analysis
+Additional visualizations include:
 
-Track changes over time:
+- Veteran vs. non-veteran outcomes
+- Length of stay distributions
+- Average length of stay comparisons
+- Exit destination trends
 
-Clients served
-Newly served clients
-Housing placements
-Veteran participation
-Length of stay metrics
+### Trends
 
-Visualized using:
+Quarter-over-quarter reporting for:
 
-Line charts
-Trend comparisons
-Quarter-over-quarter reporting
-Data Quality Monitoring
+- People served
+- Newly served clients
+- Housing placements
+- Veterans served
+- Average length of stay
 
-Identify fields that need attention.
+### Data Quality
 
-Measures completeness for:
+Evaluates completeness of key HMIS fields:
 
-Entry Date
-Exit Date
-Exit Destination
-Age
-Gender
-Race & Ethnicity
-Veteran Status
-Disabling Condition
-Provider
+- Entry Date
+- Exit Date
+- Exit Destination
+- Age
+- Gender
+- Race & Ethnicity
+- Veteran Status
+- Disabling Condition
+- Provider
 
-Automatically categorizes fields as:
+Fields are categorized as:
 
-Good
-Fair
-Poor
+- Good
+- Fair
+- Poor
 
-Helping programs improve reporting quality before submitting reports.
+This helps identify reporting gaps before submitting official reports.
 
-Privacy & Security
+---
 
-This application runs entirely in the browser.
+## Provider Management
 
-✅ No server required
+When loading a report, users can choose which providers to include in the analysis.
 
-✅ No client data uploaded
+Features include:
+
+- Provider inclusion/exclusion
+- Session-based filtering
+- On-demand provider management after loading
+- Automatic dashboard recalculation
+
+---
+
+## Data Validation
+
+The dashboard validates file structure before loading.
+
+Checks include:
+
+- Required column detection
+- Missing field identification
+- Reporting impact warnings
+- Critical field validation
+
+Users receive clear explanations when columns are missing and can choose whether to continue.
+
+---
+
+## Privacy & Security
+
+This application runs entirely inside the browser.
+
+### No Data Leaves Your Computer
+
+✅ No server
 
 ✅ No database
 
-✅ No external storage
+✅ No cloud storage
 
-✅ Data remains on the user's machine
+✅ No API calls containing client data
 
-Excel files are processed locally using SheetJS.
+✅ No user tracking
 
-Technology Stack
-Frontend
-HTML5
-CSS3
-Vanilla JavaScript
-Libraries
-SheetJS (xlsx)
-Chart.js
+✅ Local Excel processing only
 
-No build process, backend, framework, or installation required.
+All uploaded files remain on the user's device.
 
-Expected HMIS Columns
+---
 
-The dashboard is designed for HMIS Program Performance Report (PPR) exports and expects fields such as:
+## Technology Stack
 
-Client Unique Id
-HMIS Provider
-Entry Date
-Exit Date
-Length of Stay
-Exit Destination
-Newly Served Indicators
-Housing Placement Indicators
-Age
-Gender
-Race and Ethnicity
-Veteran Status
-Disabling Condition
-Household ID
+### Frontend
 
-The application validates headers during upload and clearly identifies missing columns that may impact reporting.
+- HTML5
+- CSS3
+- Vanilla JavaScript
 
-How To Use
-Export a Program Performance Report (PPR) from HMIS
-Save the report as Excel (.xlsx)
-Open the dashboard
-Drag the file into the upload area
-Select the appropriate worksheet (if applicable)
-Choose which providers to include
-Explore the dashboard
-Intended Audience
+### Libraries
 
-This tool is useful for:
+- SheetJS (XLSX)
+- Chart.js
 
-HMIS Administrators
-Program Managers
-Shelter Directors
-Data Analysts
-Grants & Compliance Teams
-Executive Leadership
-Continuum of Care reporting staff
-Future Enhancements
+### Design Principles
 
-Potential future improvements include:
+- No backend required
+- No build process
+- No framework dependencies
+- Portable single-file application
+- Works entirely offline after libraries are loaded
 
-Export filtered results
-PDF report generation
-Saved filter presets
-Benchmark comparisons
-Historical year-over-year analysis
-KPI scorecards
-Program-specific dashboards
-Custom provider groupings
-Disclaimer
+---
 
-This dashboard is designed to improve accessibility and analysis of HMIS PPR data. All metrics are calculated from the uploaded report and should be reviewed alongside official HMIS reporting standards and guidance when used for compliance or grant reporting.
+## Expected HMIS Columns
 
-Built to make HMIS data easier to understand, analyze, and act on. 📊🏠📈
+The dashboard is designed around HMIS PPR exports and expects fields similar to:
+
+- Client Unique Id
+- HMIS Provider
+- Entry Date
+- Exit Date
+- Length of Stay (Leavers in FY)
+- Exit Destination
+- Exit Destination Crosswalk
+- Newly Served in FY
+- Placed in FY
+- Age at Entry
+- Age Breakout
+- Gender
+- Race and Ethnicity
+- Veteran Status
+- Disabling Condition
+- Household ID
+
+Column validation occurs automatically during upload.
+
+---
+
+## Installation
+
+No installation
